@@ -1,16 +1,19 @@
-package handler
+package handlers
 
 import (
+	// "github.com/jmoiron/sqlx"
 	"github.com/julienschmidt/httprouter"
-	"log"
 	"net/http"
+	// "../services"
 )
+
+// var db *sqlx.DB
 
 // CreateForum - handler создания форума
 // /forum/create
 func CreateForum(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	w.Header().Set("Content-Type", "application/json")
-	log.Printf("%s", ps.ByName("param"))
+	w.Write([]byte("kjasdjfa"))
 	// fmt.Fprintf(w, "%s", "/forum/create")
 }
 
@@ -26,7 +29,6 @@ func createThread(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 func getThreadDetails(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte("kjasdjfa"))
-	log.Printf("Slug = %s", ps.ByName("slug"))
 }
 
 // getForumThreads - handler получения списка ветвей данного форума
@@ -46,8 +48,6 @@ func getForumUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 // GETForumHandler - handler функций форума
 // /forum/*
 func GETForumHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	log.Printf("%s", ps.ByName("param"))
-
 	switch ps.ByName("param") {
 	case "details":
 		getThreadDetails(w, r, ps)
@@ -57,6 +57,3 @@ func GETForumHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 		getForumUsers(w, r, ps)
 	}
 }
-
-
-

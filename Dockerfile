@@ -56,7 +56,9 @@ ENV GOPATH $HOME/go
 
 ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
 
-RUN go get -u github.com/nd-r/tech-db-forum/
+ADD ./ ${GOPATH}/github.com/nd-r/tech-db-forum/
+
+# RUN go get -u github.com/nd-r/tech-db-forum/
 RUN go install github.com/nd-r/tech-db-forum/
 
 EXPOSE 5000

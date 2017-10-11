@@ -1,16 +1,20 @@
 package main
 
 import (
-	"runtime"
-	services "./services"
 	_ "github.com/lib/pq"
+	"github.com/nd-r/tech-db-forum/database"
+	"github.com/nd-r/tech-db-forum/services"
+	"github.com/valyala/fasthttp"
 	"log"
-	"net/http"
+	"runtime"
 )
 
 func main() {
-	runtime.GOMAXPROCS(2)
+	runtime.GOMAXPROCS(8)
+
+	database.DBPoolInit()
+	database.InitDBSchema()
 
 	router := services.RouterInit()
-	log.Println(http.ListenAndServe(":8000", router))
+	log.Println(fasthttp.ListenAndServe(":8000", router.Handler))
 }

@@ -1,59 +1,44 @@
 package handlers
 
 import (
-	// "github.com/jmoiron/sqlx"
-	"github.com/julienschmidt/httprouter"
-	"net/http"
-	// "../services"
+	"fmt"
+	"github.com/nd-r/tech-db-forum/database"
+	"github.com/valyala/fasthttp"
 )
 
-// var db *sqlx.DB
-
 // CreateForum - handler создания форума
-// /forum/create
-func CreateForum(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte("kjasdjfa"))
-	// fmt.Fprintf(w, "%s", "/forum/create")
+// POST /forum/create
+func CreateForum(ctx *fasthttp.RequestCtx) {
+	ctx.SetContentType("application/json")
+	ctx.Write([]byte("ashdfjfa"))
 }
 
-// createThread - handler создания ветки
-// /forum/{slug}/create
-func createThread(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	w.Header().Set("Content-Type", "application/json")
-	// fmt.Fprintf(w, "%s", "/forum/{slug}/create")
+// CreateThread - handler создания ветки
+// POST /forum/{slug}/create
+func CreateThread(ctx *fasthttp.RequestCtx) {
+	ctx.SetContentType("application/json")
+	// slug := new string(ctx.UserValue("params"))
+
 }
 
-// getThreadDetails - handler информации ветки
-// /forum/{slug}/details
-func getThreadDetails(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte("kjasdjfa"))
+// GetForumDetails - handler информации ветки
+// GET /forum/{slug}/details
+func GetForumDetails(ctx *fasthttp.RequestCtx) {
+	ctx.SetContentType("application/json")
+	database.DB.MustExec("INSERT into users VALUES ('asdasdf', 'asdasdf', 'asdasdf','asdasdf')")
+	ctx.Write([]byte("ashdfjfa"))
 }
 
-// getForumThreads - handler получения списка ветвей данного форума
-// /forum/{slug}/threads
-func getForumThreads(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	w.Header().Set("Content-Type", "application/json")
-	// fmt.Fprintf(w, "%s", "/forum/{slug}/threads")
+// GetForumThreads - handler получения списка ветвей данного форума
+// GET /forum/{slug}/threads
+func GetForumThreads(ctx *fasthttp.RequestCtx) {
+	ctx.SetContentType("application/json")
+	database.DB.MustExec("INSERT into vote VALUES (DEFAULT, 'asdasdf', 1)")
 }
 
-// getForumUsers - handler получение списка пользователей
-// /forum/{slug}/users
-func getForumUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	w.Header().Set("Content-Type", "application/json")
-	// fmt.Fprintf(w, "%s", "/forum/{slug}/users")
-}
-
-// GETForumHandler - handler функций форума
-// /forum/*
-func GETForumHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	switch ps.ByName("param") {
-	case "details":
-		getThreadDetails(w, r, ps)
-	case "threads":
-		getForumThreads(w, r, ps)
-	case "users":
-		getForumUsers(w, r, ps)
-	}
+// GetForumUsers - handler получение списка пользователей
+// GET /forum/{slug}/users
+func GetForumUsers(ctx *fasthttp.RequestCtx) {
+	ctx.SetContentType("application/json")
+	fmt.Fprintf(ctx, "%s", "lalala")
 }

@@ -1,53 +1,156 @@
+DROP INDEX IF EXISTS usersEmailIndex;
+DROP INDEX IF EXISTS usersNicknameIndex;
+DROP INDEX IF EXISTS forumSlugIndex;
+DROP INDEX IF EXISTS voteNicknameAndThreadIdIndex;
+
+DROP TRIGGER IF EXISTS on_vote_insert
+ON vote;
+DROP TRIGGER IF EXISTS on_vote_update
+ON vote;
+DROP TRIGGER IF EXISTS on_thread_insert
+ON thread;
+
+DROP FUNCTION IF EXISTS vote_insert() CASCADE;
+DROP FUNCTION IF EXISTS vote_update() CASCADE;
+DROP FUNCTION IF EXISTS thread_insert() CASCADE;
+
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS forum CASCADE;
 DROP TABLE IF EXISTS thread CASCADE;
 DROP TABLE IF EXISTS post CASCADE;
 DROP TABLE IF EXISTS vote CASCADE;
+DROP TABLE IF EXISTS forum_users CASCADE;
 
+-- USERS
 CREATE TABLE users (
-    nickname varchar(30) PRIMARY KEY,
-
-    email varchar(40) UNIQUE,
-    fullname varchar(30) NOT NULL,
-    about text
+  id       SERIAL PRIMARY KEY,
+  about    TEXT DEFAULT NULL,
+  email    VARCHAR(50) NOT NULL UNIQUE,
+  fullname VARCHAR(50) NOT NULL,
+  nickname VARCHAR(50) NOT NULL UNIQUE
 );
 
+CREATE UNIQUE INDEX usersNicknameIndex
+  ON users (lower(nickname));
+
+CREATE UNIQUE INDEX usersEmailIndex
+  ON users (lower(email));
+
+--
+-- FORUM
+--
 CREATE TABLE forum (
-    slug varchar(30) PRIMARY KEY,
-
-    title varchar(30) NOT NULL,
-    posts BIGINT,
-    threads INT,
-    user_nickname varchar(40) NOT NULL REFERENCES users
+  id        SERIAL PRIMARY KEY,
+  slug      VARCHAR(50)  NOT NULL UNIQUE,
+  title     VARCHAR(100) NOT NULL,
+  posts     BIGINT       NOT NULL DEFAULT 0,
+  threads   INTEGER      NOT NULL DEFAULT 0,
+  moderator VARCHAR(50)  NOT NULL
 );
 
+CREATE UNIQUE INDEX forumSlugIndex
+  ON forum (lower(slug));
+
+--
+-- THREAD
+--
 CREATE TABLE thread (
-    id SERIAL PRIMARY KEY,
+  id          SERIAL PRIMARY KEY,
 
-    slug varchar(30) UNIQUE,
-    title varchar(30) NOT NULL,
-    message TEXT NOT NULL,
-    forum_slug varchar(30) NOT NULL REFERENCES forum,
-    author_nickname varchar(30) NOT NULL REFERENCES users,
-    created TIMESTAMP WITH TIME ZONE,
-    votes_count INTEGER
+  slug        VARCHAR(50) UNIQUE DEFAULT NULL,
+  title       VARCHAR(100) NOT NULL,
+  message     TEXT         NOT NULL,
+  forum_title VARCHAR(100) NOT NULL,
+  user_nick   VARCHAR(50)  NOT NULL,
+  created     TIMESTAMP WITH TIME ZONE,
+  votes_count INTEGER            DEFAULT 0
 );
 
+--
+-- POST
+--
 CREATE TABLE post (
-    id SERIAL PRIMARY KEY,
+  id         SERIAL PRIMARY KEY,
 
-    author_nickname varchar(30) NOT NULL REFERENCES users,
-    message TEXT NOT NULL,
-    created TIMESTAMP WITH TIME ZONE,
-    forum_slug varchar(30) REFERENCES forum,
-    thread_id INTEGER REFERENCES thread,
-    is_edited BOOLEAN NOT NULL,
-    parent INTEGER
+  user_nick  VARCHAR(50) NOT NULL,
+  message    TEXT        NOT NULL,
+  created    TIMESTAMP WITH TIME ZONE,
+  forum_slug VARCHAR(50) NOT NULL,
+  thread_id  INTEGER REFERENCES thread,
+  is_edited  BOOLEAN     NOT NULL DEFAULT FALSE,
+  parent     INTEGER              DEFAULT 0,
+  parents    INTEGER []  NOT NULL
 );
 
+--
+-- VOTE
+--
 CREATE TABLE vote (
-    id SERIAL PRIMARY KEY,
+  id        SERIAL PRIMARY KEY,
 
-    nickname varchar(30) REFERENCES users,
-    slug_id INTEGER REFERENCES thread
+  nickname VARCHAR(50),
+  thread_id INTEGER REFERENCES thread,
+  voice     INTEGER
+);
+CREATE UNIQUE INDEX voteNicknameAndThreadIdIndex
+  ON vote (nickname, thread_id);
+
+CREATE FUNCTION vote_insert()
+  RETURNS TRIGGER AS '
+BEGIN
+  UPDATE thread
+  SET
+    votes_count = thread.votes_count + NEW.voice
+  WHERE id = NEW.thread_id;
+  RETURN NULL;
+END;
+' LANGUAGE plpgsql;
+
+CREATE FUNCTION thread_insert()
+  RETURNS TRIGGER AS '
+BEGIN
+  UPDATE forum
+  SET
+    threads = forum.threads + 1
+  WHERE slug = NEW.forum_title;
+  RETURN NULL;
+END;
+' LANGUAGE plpgsql;
+
+CREATE TRIGGER on_thread_insert
+AFTER INSERT ON thread
+FOR EACH ROW EXECUTE PROCEDURE thread_insert();
+
+
+CREATE TRIGGER on_vote_insert
+AFTER INSERT ON vote
+FOR EACH ROW EXECUTE PROCEDURE vote_insert();
+
+CREATE FUNCTION vote_update()
+  RETURNS TRIGGER AS '
+BEGIN
+
+  IF OLD.voice = NEW.voice
+  THEN
+    RETURN NULL;
+  END IF;
+
+  UPDATE thread
+  SET
+    votes_count = thread.votes_count +
+                  CASE WHEN NEW.voice = -1
+                    THEN -2
+                  ELSE 2 END
+  WHERE id = NEW.thread_id;
+  RETURN NULL;
+END;
+' LANGUAGE plpgsql;
+
+CREATE TRIGGER on_vote_update
+AFTER UPDATE ON vote
+FOR EACH ROW EXECUTE PROCEDURE vote_update();
+
+CREATE TABLE forum_users (
+  forumId INTEGER REFERENCES forum,
+  userId  INTEGER REFERENCES users
 );

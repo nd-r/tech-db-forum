@@ -1,0 +1,13 @@
+POST http://localhost:8000/api/thread/IEUQmC_P-2hrR/create HTTP/1.1
+content-type: application/json
+
+[{
+    "author": "cogo.9iM16unGZD077u",
+    "created": "2017-10-16T14:13:13.142+03:00",
+    "forum": "Smiv-2N4o2BrkE",
+    "id": 65,
+    "message": "Abscondo. Occideris candorem peccatis elapsum eo, verbum diligi utilitatem quadrupedibus erant domine ob, e illius o se. Ait oportet stat potuero lux est et re. Molestum quale magicas quaerimus etsi difiniendo processura en es ex ibi emendicata exaudi falsa thesauro opus, cura desiderem. Nutu proruunt quid re. Salute ita eoque habet, magicas eram en. Neque lapsus coloratae e voce mali stat, quandam tali ad ea omni dimitti mutans. E. Auribus omnes in tuis at abditioribus es, mali distantia suo quaeque nares interpellat. Homo catervatim invisibiles ei, magni inferiora scribentur, hic dum vanus hi fui beati. Amo iesus ab sinu. Nova. Cor. Vim agit. Sine. Benedicis affectiones re tot amo, ne te hi sed.",
+    "parent": 3,
+    "thread": 81
+  }]
+

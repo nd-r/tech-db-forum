@@ -8,16 +8,18 @@ import (
 )
 
 // DB - database connection pool
-var DB *sqlx.DB
+var db *sqlx.DB
 
 const (
-	host        = "localhost"
-	port        = 25432
-	user        = "docker"
-	password    = "docker"
-	dbname      = "docker"
-	schema = "./database/schema.sql"
+	host     = "localhost"
+	port     = 25432
+	user     = "docker"
+	password = "docker"
+	dbname   = "docker"
+	schema   = "./database/schema.sql"
 )
+
+
 
 // DBPoolInit initializes sqlx db pool
 func DBPoolInit() {
@@ -27,15 +29,16 @@ func DBPoolInit() {
 
 	var err error
 
-	DB, err = sqlx.Connect("postgres", psqlInfo)
+	db, err = sqlx.Connect("postgres", psqlInfo)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	DB.SetMaxIdleConns(100)
-	DB.SetMaxOpenConns(100)
-	DB.SetConnMaxLifetime(0)
+	db.SetMaxIdleConns(50)
+	db.SetMaxOpenConns(50)
+	db.SetConnMaxLifetime(0)
 }
+
 
 // InitDBSchema inits tables, indexes, etc.
 func InitDBSchema() {
@@ -47,9 +50,9 @@ func InitDBSchema() {
 
 	schema := string(buf)
 
-	_, err = DB.Query(schema)
+	_, err = db.Query(schema)
 
-	if err != nil{
+	if err != nil {
 		log.Fatal(err)
 	}
 }

@@ -53,7 +53,7 @@ func CreatePosts(slugOrID string, postsArr *models.PostArr) (*models.PostArr, in
 	for _, val := range *postsArr {
 		var nextId int
 		tx.Get(&nextId, getNextId)
-		if err != nil{
+		if err != nil {
 			log.Fatalln(err)
 		}
 		if val.Parent == nil {
@@ -74,9 +74,11 @@ func CreatePosts(slugOrID string, postsArr *models.PostArr) (*models.PostArr, in
 	if err != nil {
 		log.Fatalln(err)
 	}
-	rows.Close()
+	if rows != nil {
+		rows.Close()
+	}
 	err = tx.Commit()
-	if err != nil{
+	if err != nil {
 		log.Fatalln(err)
 	}
 	return &postsAdded, 201
@@ -114,7 +116,10 @@ func PutVote(slugOrID string, vote *models.Vote) (*models.Thread, int) {
 	prevVote := models.VoteDB{}
 	err = tx.Get(&prevVote, getPrevVote, vote.Nickname, thread.Id)
 	if err != nil {
-		_, err = tx.Queryx(putVote, vote.Nickname, thread.Id, vote.Voice)
+		rows, err := tx.Queryx(putVote, vote.Nickname, thread.Id, vote.Voice)
+		if rows != nil {
+			rows.Close()
+		}
 		if err != nil {
 			tx.Rollback()
 			return nil, 404
@@ -123,7 +128,10 @@ func PutVote(slugOrID string, vote *models.Vote) (*models.Thread, int) {
 		return &thread, 200
 	}
 	if prevVote.Voice != vote.Voice {
-		_, err = tx.Queryx(updateVote, vote.Voice, prevVote.ID)
+		rows, _ := tx.Queryx(updateVote, vote.Voice, prevVote.ID)
+		if rows != nil {
+			rows.Close()
+		}
 		*thread.Votes_count += vote.Voice * 2
 		return &thread, 200
 	}

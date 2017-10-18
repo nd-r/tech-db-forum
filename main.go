@@ -7,11 +7,11 @@ import (
 	"github.com/nd-r/tech-db-forum/models"
 	"github.com/valyala/fasthttp"
 	"log"
-	"runtime"
+	// "runtime"
 )
 
 func main() {
-	runtime.GOMAXPROCS(2)
+	// runtime.GOMAXPROCS(2)
 
 	database.DBPoolInit()
 	database.InitDBSchema()
@@ -22,5 +22,5 @@ func main() {
 	models.ErrorMsg, _ = error.MarshalJSON()
 	log.SetFlags(log.Llongfile)
 	log.Println("started")
-	log.Println(fasthttp.ListenAndServe(":5000", router.Handler))
+	log.Println(fasthttp.ListenAndServe(":8000", router.Handler))
 }

@@ -44,7 +44,7 @@ func GetUserProfile(nickname []byte) (*models.User, error) {
 	return &user, err
 }
 
-const updateUserProfileQuery = "UPDATE users SET about=$1, email=$2, fullname=$3 WHERE lower(nickname)=lower($4)"
+const updateUserProfileQuery = "UPDATE users SET about=$1, email=$2, fullname=$3 WHERE lower(nickname)=lower($4) RETURNING about, email, fullname, nickname"
 
 func UpdateUserProfile(newData *models.UserUpd) (*models.User, int) {
 	tx := db.MustBegin()
@@ -67,7 +67,8 @@ func UpdateUserProfile(newData *models.UserUpd) (*models.User, int) {
 			if newData.Fullname != nil {
 				userArr[0].Fullname = *newData.Fullname
 			}
-			tx.Queryx(updateUserProfileQuery, userArr[0].About, userArr[0].Email, userArr[0].Fullname, userArr[0].Nickname)
+			
+			tx.Select(&userArr[0], updateUserProfileQuery, userArr[0].About, userArr[0].Email, userArr[0].Fullname, userArr[0].Nickname)
 
 			return &userArr[0], 200
 		}

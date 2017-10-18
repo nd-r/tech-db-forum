@@ -56,11 +56,14 @@ ENV GOPATH $HOME/go
 
 ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
 
-RUN go get -u github.com/nd-r/tech-db-forum/
+ADD ./ $GOPATH/src/github.com/nd-r/tech-db-forum/
+# RUN go get -u github.com/nd-r/tech-db-forum/
 RUN go install github.com/nd-r/tech-db-forum/
+
+WORKDIR ${GOPATH}/src/github.com/nd-r/tech-db-forum/
 
 EXPOSE 5000
 
 USER postgres
-CMD ["/usr/lib/postgresql/9.6/bin/postgres", "-D", "/var/lib/postgresql/9.6/main", "-c", "config_file=/etc/postgresql/9.6/main/postgresql.conf"]
-# CMD service postgresql start
+CMD  service postgresql start && tech-db-forum
+# ["/usr/lib/postgresql/9.6/bin/postgres", "-D", "/var/lib/postgresql/9.6/main", "-c", "config_file=/etc/postgresql/9.6/main/postgresql.conf"] &&

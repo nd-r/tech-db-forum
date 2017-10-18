@@ -1,0 +1,94 @@
+{
+	"ImportPath": "github.com/nd-r/tech-db-forum",
+	"GoVersion": "go1.8",
+	"GodepVersion": "v79",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/buaazp/fasthttprouter",
+			"Comment": "v0.1.1",
+			"Rev": "ade4e2031af3aed7fffd241084aad80a58faf421"
+		},
+		{
+			"ImportPath": "github.com/jmoiron/sqlx",
+			"Comment": "sqlx-v1.1-123-gd9bd385",
+			"Rev": "d9bd385d68c068f1fabb5057e3dedcbcbb039d0f"
+		},
+		{
+			"ImportPath": "github.com/jmoiron/sqlx/reflectx",
+			"Comment": "sqlx-v1.1-123-gd9bd385",
+			"Rev": "d9bd385d68c068f1fabb5057e3dedcbcbb039d0f"
+		},
+		{
+			"ImportPath": "github.com/klauspost/compress/flate",
+			"Comment": "v1.2.1-8-gf3dce52",
+			"Rev": "f3dce52e0576655d55fd69e74b63da96ad1108f3"
+		},
+		{
+			"ImportPath": "github.com/klauspost/compress/gzip",
+			"Comment": "v1.2.1-8-gf3dce52",
+			"Rev": "f3dce52e0576655d55fd69e74b63da96ad1108f3"
+		},
+		{
+			"ImportPath": "github.com/klauspost/compress/zlib",
+			"Comment": "v1.2.1-8-gf3dce52",
+			"Rev": "f3dce52e0576655d55fd69e74b63da96ad1108f3"
+		},
+		{
+			"ImportPath": "github.com/klauspost/cpuid",
+			"Comment": "v1.1",
+			"Rev": "ae7887de9fa5d2db4eaa8174a7eff2c1ac00f2da"
+		},
+		{
+			"ImportPath": "github.com/lib/pq",
+			"Comment": "go1.0-cutoff-181-gb77235e",
+			"Rev": "b77235e3890a962fe8a6f8c4c7198679ca7814e7"
+		},
+		{
+			"ImportPath": "github.com/lib/pq/oid",
+			"Comment": "go1.0-cutoff-181-gb77235e",
+			"Rev": "b77235e3890a962fe8a6f8c4c7198679ca7814e7"
+		},
+		{
+			"ImportPath": "github.com/mailru/easyjson",
+			"Rev": "2a92e673c9a6302dd05c3a691ae1f24aef46457d"
+		},
+		{
+			"ImportPath": "github.com/mailru/easyjson/buffer",
+			"Rev": "2a92e673c9a6302dd05c3a691ae1f24aef46457d"
+		},
+		{
+			"ImportPath": "github.com/mailru/easyjson/jlexer",
+			"Rev": "2a92e673c9a6302dd05c3a691ae1f24aef46457d"
+		},
+		{
+			"ImportPath": "github.com/mailru/easyjson/jwriter",
+			"Rev": "2a92e673c9a6302dd05c3a691ae1f24aef46457d"
+		},
+		{
+			"ImportPath": "github.com/mailru/easyjson/opt",
+			"Rev": "2a92e673c9a6302dd05c3a691ae1f24aef46457d"
+		},
+		{
+			"ImportPath": "github.com/valyala/bytebufferpool",
+			"Rev": "e746df99fe4a3986f4d4f79e13c1e0117ce9c2f7"
+		},
+		{
+			"ImportPath": "github.com/valyala/fasthttp",
+			"Comment": "v20160617-117-g5116aa6",
+			"Rev": "5116aa64e038d917b3916a74da456c00643ff1e6"
+		},
+		{
+			"ImportPath": "github.com/valyala/fasthttp/fasthttputil",
+			"Comment": "v20160617-117-g5116aa6",
+			"Rev": "5116aa64e038d917b3916a74da456c00643ff1e6"
+		},
+		{
+			"ImportPath": "github.com/valyala/fasthttp/stackless",
+			"Comment": "v20160617-117-g5116aa6",
+			"Rev": "5116aa64e038d917b3916a74da456c00643ff1e6"
+		}
+	]
+}

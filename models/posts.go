@@ -12,5 +12,16 @@ type Post struct {
 	Parents    *string
 }
 
+type PostDetails struct {
+	AuthorDetails *User `json:"author,omitempty"`
+	ForumDetails  *Forum    `json:"forum,omitempty"`
+	PostDetails   *Post     `json:"post,omitempty"`
+	ThreadDetails *Thread   `json:"thread,omitempty"`
+}
+
+type PostUpdate struct {
+	Message *string `json:"message"`
+}
+
 //easyjson:json
 type PostArr []Post

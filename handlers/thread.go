@@ -4,7 +4,6 @@ import (
 	"github.com/nd-r/tech-db-forum/database"
 	"github.com/nd-r/tech-db-forum/models"
 	"github.com/valyala/fasthttp"
-	"log"
 )
 
 // CreateNewPosts - создание новых постов
@@ -13,11 +12,7 @@ func CreateNewPosts(ctx *fasthttp.RequestCtx) {
 	ctx.SetContentType("application/json")
 	slugOrID := ctx.UserValue("slug_or_id").(string)
 
-	if len(ctx.PostBody()) == 3 {
-		ctx.SetStatusCode(201)
-		ctx.Write([]byte("[]"))
-		return
-	}
+
 
 	postsArr := models.PostArr{}
 	postsArr.UnmarshalJSON(ctx.PostBody())
@@ -27,8 +22,12 @@ func CreateNewPosts(ctx *fasthttp.RequestCtx) {
 
 	switch statusCode {
 	case 201:
-		resp, _ := newPosts.MarshalJSON()
-		ctx.Write(resp)
+		if newPosts != nil{
+			resp, _ := newPosts.MarshalJSON()
+			ctx.Write(resp)
+			return
+		}
+		ctx.Write([]byte("[]"))
 	default:
 		ctx.Write(models.ErrorMsg)
 	}
@@ -91,10 +90,7 @@ func GetThreadPosts(ctx *fasthttp.RequestCtx) {
 	switch statusCode {
 	case 200:
 		if len(*postArr) != 0 {
-			resp, err := postArr.MarshalJSON()
-			if err != nil {
-				log.Println(err)
-			}
+			resp, _ := postArr.MarshalJSON()
 			ctx.Write(resp)
 		} else {
 			ctx.Write([]byte("[]"))

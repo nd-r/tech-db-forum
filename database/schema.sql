@@ -1,3 +1,5 @@
+-- SET SYNCHRONOUS_COMMIT = 'off';
+
 DROP INDEX IF EXISTS usersEmailIndex;
 DROP INDEX IF EXISTS usersNicknameIndex;
 DROP INDEX IF EXISTS forumSlugIndex;
@@ -9,10 +11,15 @@ DROP TRIGGER IF EXISTS on_vote_update
 ON vote;
 DROP TRIGGER IF EXISTS on_thread_insert
 ON thread;
+DROP TRIGGER IF EXISTS on_thread_insert_user
+ON thread;
+DROP TRIGGER IF EXISTS on_post_insert_user
+ON post;
 
 DROP FUNCTION IF EXISTS vote_insert() CASCADE;
 DROP FUNCTION IF EXISTS vote_update() CASCADE;
 DROP FUNCTION IF EXISTS thread_insert() CASCADE;
+DROP FUNCTION IF EXISTS forum_users_update() CASCADE;
 
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS forum CASCADE;
@@ -60,7 +67,7 @@ CREATE TABLE thread (
   slug        VARCHAR(50) UNIQUE DEFAULT NULL,
   title       VARCHAR(100) NOT NULL,
   message     TEXT         NOT NULL,
-  forum_title VARCHAR(100) NOT NULL,
+  forum_slug  VARCHAR(100) NOT NULL,
   user_nick   VARCHAR(50)  NOT NULL,
   created     TIMESTAMP WITH TIME ZONE,
   votes_count INTEGER            DEFAULT 0
@@ -72,14 +79,14 @@ CREATE TABLE thread (
 CREATE TABLE post (
   id         SERIAL PRIMARY KEY,
 
-  user_nick  VARCHAR(50) NOT NULL,
-  message    TEXT        NOT NULL,
+  user_nick  VARCHAR(50)               NOT NULL,
+  message    TEXT                      NOT NULL,
   created    TIMESTAMP WITH TIME ZONE,
-  forum_slug VARCHAR(50) NOT NULL,
-  thread_id  INTEGER REFERENCES thread,
-  is_edited  BOOLEAN     NOT NULL DEFAULT FALSE,
-  parent     INTEGER              DEFAULT 0,
-  parents    INTEGER []  NOT NULL
+  forum_slug VARCHAR(100)              NOT NULL,
+  thread_id  INTEGER REFERENCES thread NOT NULL,
+  is_edited  BOOLEAN                   NOT NULL DEFAULT FALSE,
+  parent     INTEGER                            DEFAULT 0,
+  parents    INTEGER []                NOT NULL
 );
 
 --
@@ -88,7 +95,7 @@ CREATE TABLE post (
 CREATE TABLE vote (
   id        SERIAL PRIMARY KEY,
 
-  nickname VARCHAR(50),
+  nickname  VARCHAR(50) NOT NULL,
   thread_id INTEGER REFERENCES thread,
   voice     INTEGER
 );
@@ -112,18 +119,19 @@ BEGIN
   UPDATE forum
   SET
     threads = forum.threads + 1
-  WHERE slug = NEW.forum_title;
+  WHERE slug = NEW.forum_slug;
   RETURN NULL;
 END;
 ' LANGUAGE plpgsql;
 
 CREATE TRIGGER on_thread_insert
-AFTER INSERT ON thread
+AFTER INSERT
+  ON thread
 FOR EACH ROW EXECUTE PROCEDURE thread_insert();
 
-
 CREATE TRIGGER on_vote_insert
-AFTER INSERT ON vote
+AFTER INSERT
+  ON vote
 FOR EACH ROW EXECUTE PROCEDURE vote_insert();
 
 CREATE FUNCTION vote_update()
@@ -147,10 +155,34 @@ END;
 ' LANGUAGE plpgsql;
 
 CREATE TRIGGER on_vote_update
-AFTER UPDATE ON vote
+AFTER UPDATE
+  ON vote
 FOR EACH ROW EXECUTE PROCEDURE vote_update();
+
+-- CREATE FUNCTION on_vote()
+--   RETURNS TRIGGER AS 'BEGIN IF(TG_OP = 'UPDATE') THEN IF  END;' LANGUAGE plpgsql;
 
 CREATE TABLE forum_users (
   forumId INTEGER REFERENCES forum,
   userId  INTEGER REFERENCES users
 );
+
+CREATE FUNCTION forum_users_update()
+  RETURNS TRIGGER AS 'BEGIN INSERT INTO forum_users (forumId, userId) VALUES ((SELECT id
+                                                                               FROM forum
+                                                                               WHERE
+                                                                                 lower(slug) = lower(NEW.forum_slug)),
+                                                                              (SELECT id
+                                                                               FROM users
+                                                                               WHERE lower(nickname) =
+                                                                                     lower(NEW.user_nick)));
+  RETURN NULL;
+END;' LANGUAGE plpgsql;
+
+CREATE TRIGGER on_thread_insert_user
+AFTER INSERT ON thread
+FOR EACH ROW EXECUTE PROCEDURE forum_users_update();
+
+CREATE TRIGGER on_post_insert_user
+AFTER INSERT ON post
+FOR EACH ROW EXECUTE PROCEDURE forum_users_update();

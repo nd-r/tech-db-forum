@@ -1,6 +1,7 @@
 package database
 
 import (
+	"github.com/lib/pq"
 	"github.com/nd-r/tech-db-forum/models"
 	"log"
 	"strconv"
@@ -9,10 +10,10 @@ import (
 )
 
 const getThreadIdBySlug = "SELECT id FROM thread WHERE lower(slug)=lower($1)"
-const getThreadIdBySlugOrId = "SELECT id FROM thread WHERE id=$1 OR lower(slug)=lower($1::text)"
+const getThreadIdById = "SELECT id FROM thread WHERE id=$1"
 
 const insertPost = "INSERT INTO post (id, user_nick, message, created, forum_slug, thread_id, parent, parents)" +
-	"VALUES($6::INTEGER, (SELECT nickname FROM users WHERE lower(nickname) = lower($1)), $2, $3, (SELECT forum_title FROM thread WHERE id=$4), $4, $5, ((SELECT parents FROM post WHERE id = $5) || $6::INTEGER))" +
+	"VALUES($6::INTEGER, (SELECT nickname FROM users WHERE lower(nickname) = lower($1)), $2, $3, (SELECT forum_slug FROM thread WHERE id=$4), (CASE WHEN $5=0 THEN $4 ELSE CASE WHEN $4=(SELECT thread_id FROM post WHERE id=$5) THEN $4 ELSE NULL END END), $5, ((SELECT parents FROM post WHERE id = $5) || $6::INTEGER))" +
 	"RETURNING id, user_nick, message, created, forum_slug,thread_id,is_edited, parent"
 
 const getNextId = "SELECT nextval('post_id_seq')"
@@ -31,6 +32,15 @@ func CreatePosts(slugOrID string, postsArr *models.PostArr) (*models.PostArr, in
 		if err != nil {
 			return nil, 404
 		}
+	} else {
+		err = tx.Get(&ID, getThreadIdById, ID)
+		if err != nil {
+			return nil, 404
+		}
+	}
+
+	if len(*postsArr) == 0 {
+		return nil, 201
 	}
 
 	var post models.Post
@@ -43,6 +53,9 @@ func CreatePosts(slugOrID string, postsArr *models.PostArr) (*models.PostArr, in
 	for _, val := range *postsArr {
 		var nextId int
 		tx.Get(&nextId, getNextId)
+		if err != nil{
+			log.Fatalln(err)
+		}
 		if val.Parent == nil {
 			a := 0
 			val.Parent = &a
@@ -50,20 +63,26 @@ func CreatePosts(slugOrID string, postsArr *models.PostArr) (*models.PostArr, in
 		err = prep.Get(&post, val.User_nick, val.Message, currTime, ID, val.Parent, nextId)
 		if err != nil {
 			log.Println(err, ID)
+			if err.(*pq.Error).Column == "user_nick" {
+				return nil, 404
+			}
 			return nil, 409
 		}
-		nextId++
 		postsAdded = append(postsAdded, post)
 	}
-	_, err = tx.Queryx(UpdateForumPosts,post.Forum_slug, len(postsAdded))
+	rows, err := tx.Queryx(UpdateForumPosts, post.Forum_slug, len(postsAdded))
+	if err != nil {
+		log.Fatalln(err)
+	}
+	rows.Close()
+	err = tx.Commit()
 	if err != nil{
 		log.Fatalln(err)
 	}
-	tx.Commit()
 	return &postsAdded, 201
 }
 
-const putVote = "INSERT INTO vote (nickname, thread_id, voice) VALUES ($1, $2, $3)"
+const putVote = "INSERT INTO vote (nickname , thread_id, voice) VALUES ((SELECT nickname FROM users WHERE lower(nickname)=lower($1)), $2, $3)"
 
 const getThreadBySlug = "SELECT * FROM thread WHERE lower(slug)=lower($1)"
 const getThreadById = "SELECT * FROM thread WHERE id=$1"
@@ -95,7 +114,6 @@ func PutVote(slugOrID string, vote *models.Vote) (*models.Thread, int) {
 	prevVote := models.VoteDB{}
 	err = tx.Get(&prevVote, getPrevVote, vote.Nickname, thread.Id)
 	if err != nil {
-		log.Println(err)
 		_, err = tx.Queryx(putVote, vote.Nickname, thread.Id, vote.Voice)
 		if err != nil {
 			tx.Rollback()
@@ -213,7 +231,6 @@ func GetThreadPosts(slugOrID *string, limit []byte, since []byte, sort []byte, d
 		}
 	}
 
-	log.Println(query, ID)
 	if err != nil {
 		log.Println(err)
 	}
@@ -221,7 +238,7 @@ func GetThreadPosts(slugOrID *string, limit []byte, since []byte, sort []byte, d
 	return &posts, 200
 }
 
-const threadUpdateQuery = "UPDATE thread SET message = $1, title = $2 WHERE id = $3 RETURNING *"
+const threadUpdateQuery = "UPDATE thread SET message = coalesce($1, message), title = coalesce($2,title) WHERE id = $3 RETURNING *"
 
 func UpdateThreadDetails(slugOrID *string, thrUpdate *models.ThreadUpdate) (*models.Thread, int) {
 	tx := db.MustBegin()
@@ -241,7 +258,6 @@ func UpdateThreadDetails(slugOrID *string, thrUpdate *models.ThreadUpdate) (*mod
 	err = tx.Get(&thread, threadUpdateQuery, thrUpdate.Message, thrUpdate.Title, ID)
 
 	if err != nil {
-		log.Println(err)
 		return nil, 404
 	}
 	return &thread, 200

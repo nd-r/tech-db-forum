@@ -4,7 +4,6 @@ import (
 	"github.com/nd-r/tech-db-forum/database"
 	"github.com/nd-r/tech-db-forum/models"
 	"github.com/valyala/fasthttp"
-	"log"
 )
 
 // CreateForum - handler создания форума
@@ -40,9 +39,7 @@ func CreateThread(ctx *fasthttp.RequestCtx) {
 
 	slug := ctx.UserValue("slug")
 	if slug != nil {
-		thread.Forum_title = ctx.UserValue("slug").(string)
-	} else {
-		log.Panicln(string(ctx.Path()))
+		thread.Forum_slug = ctx.UserValue("slug").(string)
 	}
 
 	threadExisting, statusCode := database.CreateThread(&thread)
@@ -108,20 +105,25 @@ func GetForumThreads(ctx *fasthttp.RequestCtx) {
 // GET /forum/{slug}/users
 func GetForumUsers(ctx *fasthttp.RequestCtx) {
 	ctx.SetContentType("application/json")
-	// slug := ctx.UserValue("slug").(string)
 
-	// users, statusCode := database.GetForumUsers(&slug)
-	// ctx.SetStatusCode(statusCode)
+	slug := ctx.UserValue("slug").(string)
+	limit := ctx.QueryArgs().Peek("limit")
+	since := ctx.QueryArgs().Peek("since")
+	desc := ctx.QueryArgs().Peek("desc")
 
-	// switch statusCode {
-	// case 200:
-	// 	if len(users) != 0 {
-	// 		resp, _ := users.MarshalJSON()
-	// 		ctx.Write(resp)
-	// 		return
-	// 	}
-	// 	ctx.Write([]byte("[]"))
-	// case 404:
-	// 	ctx.Write(models.ErrorMsg)
-	// }
+
+	users, statusCode := database.GetForumUsers(&slug,limit, since, desc)
+	ctx.SetStatusCode(statusCode)
+
+	switch statusCode {
+	case 200:
+		if len(*users) != 0 {
+			resp, _ := users.MarshalJSON()
+			ctx.Write(resp)
+			return
+		}
+		ctx.Write([]byte("[]"))
+	case 404:
+		ctx.Write(models.ErrorMsg)
+	}
 }

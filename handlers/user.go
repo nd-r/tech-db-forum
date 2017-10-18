@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"github.com/mailru/easyjson/opt"
 	"github.com/nd-r/tech-db-forum/database"
 	"github.com/nd-r/tech-db-forum/models"
 	"github.com/valyala/fasthttp"
@@ -14,7 +13,8 @@ func CreateUser(ctx *fasthttp.RequestCtx) {
 
 	var user models.User
 	user.UnmarshalJSON(ctx.PostBody())
-	user.Nickname = opt.OString(ctx.UserValue("nickname").(string))
+
+	user.Nickname = ctx.UserValue("nickname").(string)
 
 	userArr, statusCode := database.CreateUser(&user)
 	ctx.SetStatusCode(statusCode)
@@ -53,9 +53,11 @@ func GetUserProfile(ctx *fasthttp.RequestCtx) {
 func UpdateUserProfile(ctx *fasthttp.RequestCtx) {
 	ctx.SetContentType("application/json")
 
-	user := models.UserUpdProfile{}
+	user := models.UserUpd{}
 	user.UnmarshalJSON(ctx.PostBody())
-	user.Nickname = opt.OString(ctx.UserValue("nickname").(string))
+	
+	nickname := ctx.UserValue("nickname").(string)
+	user.Nickname = &nickname
 
 	userUpdated, statusCode := database.UpdateUserProfile(&user)
 	ctx.SetStatusCode(statusCode)

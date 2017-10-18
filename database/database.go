@@ -12,7 +12,7 @@ var db *sqlx.DB
 
 const (
 	host     = "localhost"
-	port     = 25432
+	port     = 5432
 	user     = "docker"
 	password = "docker"
 	dbname   = "docker"

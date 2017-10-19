@@ -1,9 +1,11 @@
 -- SET SYNCHRONOUS_COMMIT = 'off';
+CREATE EXTENSION IF NOT EXISTS CITEXT;
 
 DROP INDEX IF EXISTS usersEmailIndex;
 DROP INDEX IF EXISTS usersNicknameIndex;
 DROP INDEX IF EXISTS forumSlugIndex;
 DROP INDEX IF EXISTS voteNicknameAndThreadIdIndex;
+DROP INDEX IF EXISTS threadSlugIndex;
 
 DROP TRIGGER IF EXISTS on_vote_insert
 ON vote;
@@ -72,6 +74,9 @@ CREATE TABLE thread (
   created     TIMESTAMP WITH TIME ZONE,
   votes_count INTEGER            DEFAULT 0
 );
+
+CREATE UNIQUE INDEX threadSlugIndex
+  ON thread (lower(slug));
 
 --
 -- POST

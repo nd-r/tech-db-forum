@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"github.com/nd-r/tech-db-forum/database"
 	"github.com/nd-r/tech-db-forum/models"
 	"github.com/valyala/fasthttp"
@@ -12,8 +13,6 @@ func CreateNewPosts(ctx *fasthttp.RequestCtx) {
 	ctx.SetContentType("application/json")
 	slugOrID := ctx.UserValue("slug_or_id").(string)
 
-
-
 	postsArr := models.PostArr{}
 	postsArr.UnmarshalJSON(ctx.PostBody())
 
@@ -22,7 +21,7 @@ func CreateNewPosts(ctx *fasthttp.RequestCtx) {
 
 	switch statusCode {
 	case 201:
-		if newPosts != nil{
+		if newPosts != nil {
 			resp, _ := newPosts.MarshalJSON()
 			ctx.Write(resp)
 			return
@@ -37,18 +36,22 @@ func CreateNewPosts(ctx *fasthttp.RequestCtx) {
 // GET /thread/{slug_or_id}/details
 func GetThreadDetails(ctx *fasthttp.RequestCtx) {
 	ctx.SetContentType("application/json")
-	slugOrID := ctx.UserValue("slug_or_id").(string)
+	slugOrID := ctx.UserValue("slug_or_id")
 
-	thread, statusCode := database.GetThread(&slugOrID)
-	ctx.SetStatusCode(statusCode)
-
-	switch statusCode {
-	case 200:
-		resp, _ := thread.MarshalJSON()
-		ctx.Write(resp)
-	case 404:
+	thread, err := database.GetThread(slugOrID)
+	if err != nil {
+		ctx.SetStatusCode(404)
 		ctx.Write(models.ErrorMsg)
+		return
 	}
+
+	var resp []byte
+	resp, err = thread.MarshalJSON()
+	if err != nil{
+		log.Fatalln(err)
+	}
+
+	ctx.Write(resp)
 }
 
 // UpdateThreadDetails - обновление ветки

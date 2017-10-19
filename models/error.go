@@ -5,3 +5,5 @@ type ErrorStr struct {
 }
 
 var ErrorMsg []byte
+
+

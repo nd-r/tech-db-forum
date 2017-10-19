@@ -33,7 +33,7 @@ func CreateUser(ctx *fasthttp.RequestCtx) {
 // GET /user/{nickname}/profile
 func GetUserProfile(ctx *fasthttp.RequestCtx) {
 	ctx.SetContentType("application/json")
-	nickname := []byte(ctx.UserValue("nickname").(string))
+	nickname := ctx.UserValue("nickname")
 
 	user, err := database.GetUserProfile(nickname)
 
@@ -55,7 +55,6 @@ func UpdateUserProfile(ctx *fasthttp.RequestCtx) {
 
 	user := models.UserUpd{}
 	user.UnmarshalJSON(ctx.PostBody())
-	
 	nickname := ctx.UserValue("nickname").(string)
 	user.Nickname = &nickname
 

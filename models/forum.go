@@ -1,6 +1,7 @@
 package models
 
 type Forum struct {
+	Id        int
 	Posts     *int   `json:"posts"`
 	Slug      string `json:"slug"`
 	Threads   *int   `json:"threads"`

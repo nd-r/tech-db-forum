@@ -22,5 +22,5 @@ func main() {
 	models.ErrorMsg, _ = error.MarshalJSON()
 	log.SetFlags(log.Llongfile)
 	log.Println("started")
-	log.Println(fasthttp.ListenAndServe(":5000", router.Handler))
+	log.Println(fasthttp.ListenAndServe(":8000", router.Handler))
 }

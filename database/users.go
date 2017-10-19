@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const createUserQuery = "INSERT INTO users (about, email, fullname, nickname) VALUES ($1, $2, $3, $4) RETURNING about, email, fullname, nickname"
+const createUserQuery = "INSERT INTO users (about, email, fullname, nickname) VALUES ($1, $2, $3, $4)  RETURNING about, email, fullname, nickname"
 const selectUsrByNickOrEmailQuery = "SELECT about, email, fullname, nickname FROM users WHERE lower(nickname)=lower($1) OR lower(email)=lower($2)"
 
 func CreateUser(usr *models.User) (*models.UsersArr, int) {
@@ -30,7 +30,7 @@ func CreateUser(usr *models.User) (*models.UsersArr, int) {
 
 const getUserProfileQuery = "SELECT about, email, fullname, nickname FROM users WHERE lower(nickname)=lower($1)"
 
-func GetUserProfile(nickname []byte) (*models.User, error) {
+func GetUserProfile(nickname interface{}) (*models.User, error) {
 	tx := db.MustBegin()
 	defer tx.Commit()
 	user := models.User{}

@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"github.com/nd-r/tech-db-forum/database"
+	"github.com/nd-r/tech-db-forum/dberrors"
 	"github.com/nd-r/tech-db-forum/models"
 	"github.com/valyala/fasthttp"
+	"log"
 )
 
 // CreateForum - handler создания форума
@@ -14,19 +16,29 @@ func CreateForum(ctx *fasthttp.RequestCtx) {
 
 	forum.UnmarshalJSON(ctx.PostBody())
 
-	existingForum, statusCode := database.CreateForum(&forum)
-	ctx.SetStatusCode(statusCode)
+	pqErr := database.CreateForum(&forum)
+	if pqErr != nil {
+		switch pqErr.Code {
+		case dberrors.UniqueConstraint:
+			ctx.SetStatusCode(409)
 
-	switch statusCode {
-	case 201:
-		resp, _ := forum.MarshalJSON()
-		ctx.Write(resp)
-	case 404:
-		ctx.Write(models.ErrorMsg)
-	case 409:
-		resp, _ := existingForum.MarshalJSON()
-		ctx.Write(resp)
+			forumExisting, _ := database.GetForumDetails(forum.Slug)
+			resp, _ := forumExisting.MarshalJSON()
+			ctx.Write(resp)
+
+			return
+
+		case dberrors.NotNullConstraint:
+			ctx.SetStatusCode(404)
+			ctx.Write(models.ErrorMsg)
+
+			return
+		}
 	}
+
+	ctx.SetStatusCode(201)
+	resp, _ := forum.MarshalJSON()
+	ctx.Write(resp)
 }
 
 // CreateThread - handler создания ветки
@@ -34,45 +46,62 @@ func CreateForum(ctx *fasthttp.RequestCtx) {
 func CreateThread(ctx *fasthttp.RequestCtx) {
 	ctx.SetContentType("application/json")
 
-	thread := models.Thread{}
-	thread.UnmarshalJSON(ctx.PostBody())
+	threadDetails := models.Thread{}
+	threadDetails.UnmarshalJSON(ctx.PostBody())
 
 	slug := ctx.UserValue("slug")
-	if slug != nil {
-		thread.Forum_slug = ctx.UserValue("slug").(string)
+
+	pqErr := database.CreateThread(&slug, &threadDetails)
+	if pqErr != nil {
+		switch pqErr.Code {
+		case dberrors.NotNullConstraint:
+			ctx.SetStatusCode(404)
+			ctx.Write(models.ErrorMsg)
+
+			return
+
+		case dberrors.UniqueConstraint:
+			ctx.SetStatusCode(409)
+			threadExisting, err := database.GetThread(*threadDetails.Slug)
+			if err != nil{
+				log.Fatalln(err)
+			}
+			
+			resp, err := threadExisting.MarshalJSON()
+			if err != nil{
+				log.Fatalln(err)
+			}
+			ctx.Write(resp)
+
+			return
+		}
 	}
 
-	threadExisting, statusCode := database.CreateThread(&thread)
-	ctx.SetStatusCode(statusCode)
-
-	switch statusCode {
-	case 201:
-		resp, _ := thread.MarshalJSON()
-		ctx.Write(resp)
-	case 404:
-		ctx.Write(models.ErrorMsg)
-	case 409:
-		resp, _ := threadExisting.MarshalJSON()
-		ctx.Write(resp)
+	ctx.SetStatusCode(201)
+	resp, err := threadDetails.MarshalJSON()
+	if err != nil {
+		log.Fatalln(err)
 	}
+	ctx.Write(resp)
 }
 
 // GetForumDetails - handler информации ветки
 // GET /forum/{slug}/details
 func GetForumDetails(ctx *fasthttp.RequestCtx) {
 	ctx.SetContentType("application/json")
-	slug := ctx.UserValue("slug").(string)
+	slug := ctx.UserValue("slug")
 
-	forum, statusCode := database.GetForumDetails(slug)
-	ctx.SetStatusCode(statusCode)
-
-	switch statusCode {
-	case 200:
-		resp, _ := forum.MarshalJSON()
-		ctx.Write(resp)
-	case 404:
+	forum, err := database.GetForumDetails(slug)
+	if err != nil {
+		ctx.SetStatusCode(404)
 		ctx.Write(models.ErrorMsg)
+
+		return
 	}
+
+	ctx.SetStatusCode(200)
+	resp, _ := forum.MarshalJSON()
+	ctx.Write(resp)
 }
 
 // GetForumThreads - handler получения списка ветвей данного форума
@@ -80,7 +109,7 @@ func GetForumDetails(ctx *fasthttp.RequestCtx) {
 func GetForumThreads(ctx *fasthttp.RequestCtx) {
 	ctx.SetContentType("application/json")
 
-	slug := ctx.UserValue("slug").(string)
+	slug := ctx.UserValue("slug")
 	limit := ctx.QueryArgs().Peek("limit")
 	since := ctx.QueryArgs().Peek("since")
 	desc := ctx.QueryArgs().Peek("desc")
@@ -111,8 +140,7 @@ func GetForumUsers(ctx *fasthttp.RequestCtx) {
 	since := ctx.QueryArgs().Peek("since")
 	desc := ctx.QueryArgs().Peek("desc")
 
-
-	users, statusCode := database.GetForumUsers(&slug,limit, since, desc)
+	users, statusCode := database.GetForumUsers(&slug, limit, since, desc)
 	ctx.SetStatusCode(statusCode)
 
 	switch statusCode {

@@ -1,91 +1,84 @@
 package database
 
 import (
+	"github.com/lib/pq"
 	"github.com/nd-r/tech-db-forum/models"
 	"log"
 	"strings"
 )
 
-const createForumQuery = "INSERT INTO forum " +
-	"(slug, title, moderator) " +
-	"VALUES ($1, $2, " +
-	"(SELECT nickname FROM users " +
-	"WHERE lower(nickname) = lower($3))) RETURNING slug, title, moderator, posts, threads"
+const createForumQuery = "INSERT INTO forum (slug, title, moderator) " +
+	"VALUES ($1, $2, (SELECT nickname FROM users WHERE lower(nickname) = lower($3)))" +
+	"RETURNING *"
 
-const selectForumQuery = "SELECT slug, title, posts, threads, moderator FROM forum WHERE lower(slug)=lower($1)"
-
-func CreateForum(forum *models.Forum) (*models.Forum, int) {
+func CreateForum(forum *models.Forum) *pq.Error {
 	tx := db.MustBegin()
-	defer tx.Commit()
+	defer tx.Rollback()
 
-	forumExisting := models.Forum{}
-	err := tx.Get(&forumExisting, selectForumQuery, forum.Slug)
-	if err == nil {
-		return &forumExisting, 409
-	}
-	log.Println(err)
+	err := tx.Get(forum, createForumQuery, forum.Slug, forum.Title, forum.Moderator)
 
-	err = tx.Get(forum, createForumQuery, forum.Slug, forum.Title, forum.Moderator)
 	if err != nil {
-		log.Println(err)
-		return nil, 404
+		pqErr, ok := err.(*pq.Error)
+		if !ok {
+			log.Fatalln(err)
+		}
+		return pqErr
 	}
-	return nil, 201
+
+	tx.Commit()
+	return nil
 }
 
-func GetForumDetails(slug string) (*models.Forum, int) {
+const selectForumQuery = "SELECT * FROM forum WHERE lower(slug)=lower($1)"
+
+func GetForumDetails(slug interface{}) (*models.Forum, error) {
 	tx := db.MustBegin()
 	defer tx.Commit()
 
 	forum := models.Forum{}
 
 	err := tx.Get(&forum, selectForumQuery, slug)
-	if err == nil {
-		return &forum, 200
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, 404
+	return &forum, nil
 }
 
-const getThreadDetailsBySlug = "SELECT * FROM thread WHERE lower(slug)=lower($1)"
+const createThreadQuery = "INSERT INTO thread (slug, title, message, forum_slug, created, user_nick) " +
+	"VALUES ($1, $2, $3, (SELECT slug FROM forum WHERE lower(slug)=lower($4)), COALESCE($5::TIMESTAMPTZ, current_timestamp), " +
+	"(SELECT nickname FROM users WHERE lower(nickname) = lower($6))) " +
+	"RETURNING  id, slug, title, message, forum_slug, user_nick, created, votes_count"
 
-const createThreadQuery = "INSERT INTO thread " +
-	"(slug, title, message, forum_slug, created, user_nick) " +
-	"VALUES ($1, $2, $3, (SELECT slug FROM forum WHERE lower(slug)=lower($4)), COALESCE($5::TIMESTAMPTZ, current_timestamp)," +
-	"(SELECT nickname FROM users " +
-	"WHERE lower(nickname) = lower($6))) RETURNING  id, slug, title, message, forum_slug, user_nick, created, votes_count"
-
-func CreateThread(thread *models.Thread) (*models.Thread, int) {
+func CreateThread(slug *interface{}, threadDetails *models.Thread) *pq.Error {
 	tx := db.MustBegin()
 	defer tx.Commit()
 
-	threadExisting := models.Thread{}
-
-	if thread.Slug != nil {
-		err := tx.Get(&threadExisting, getThreadDetailsBySlug, *thread.Slug)
-		if err == nil {
-			return &threadExisting, 409
-		}
-	}
-
-	err := tx.Get(thread, createThreadQuery, thread.Slug, thread.Title, thread.Message, thread.Forum_slug, thread.Created, thread.User_nick)
+	err := tx.Get(threadDetails, createThreadQuery, threadDetails.Slug, threadDetails.Title, threadDetails.Message,
+		slug, threadDetails.Created, threadDetails.User_nick)
 	if err != nil {
-		log.Println(err)
+		pqErr, ok := err.(*pq.Error)
+		if !ok {
+			log.Fatalln(err)
+		}
+
 		tx.Rollback()
-		return nil, 404
+		return pqErr
 	}
-	return nil, 201
+	return nil
 }
 
 const getForumThreads = "SELECT * FROM thread WHERE lower(forum_slug)=lower($1)"
 
-func GetForumThreads(slug *string, limit []byte, since []byte, desc []byte) (*models.TreadArr, int) {
+func GetForumThreads(slug *interface{}, limit []byte, since []byte, desc []byte) (*models.TreadArr, int) {
 	tx := db.MustBegin()
 	defer tx.Commit()
+
+	isDesc := string(desc) == "true"
 	query := getForumThreads
 
 	if since != nil {
-		if string(desc) != "true" {
+		if !isDesc {
 			query += " AND created >= $2"
 		} else {
 			query += " AND created <= $2"
@@ -93,7 +86,7 @@ func GetForumThreads(slug *string, limit []byte, since []byte, desc []byte) (*mo
 	}
 
 	query += " ORDER BY created"
-	if string(desc) == "true" {
+	if isDesc {
 		query += " DESC"
 	}
 
@@ -150,10 +143,10 @@ func GetForumUsers(slug *string, limit []byte, since []byte, desc []byte) (*mode
 		query = strings.Replace(query, "$4", " ASC", -1)
 	}
 
-	if limit == nil{
-		tx.Select(&users, query, slug, since, nil)		
-	}else {
-		tx.Select(&users, query, slug, since, limit)			
+	if limit == nil {
+		tx.Select(&users, query, slug, since, nil)
+	} else {
+		tx.Select(&users, query, slug, since, limit)
 	}
 	return &users, 200
 }

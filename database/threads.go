@@ -86,8 +86,6 @@ func CreatePosts(slugOrID string, postsArr *models.PostArr) (*models.PostArr, in
 
 const putVote = "INSERT INTO vote (nickname , thread_id, voice) VALUES ((SELECT nickname FROM users WHERE lower(nickname)=lower($1)), $2, $3)"
 
-const getThreadBySlug = "SELECT * FROM thread WHERE lower(slug)=lower($1)"
-const getThreadById = "SELECT * FROM thread WHERE id=$1"
 const getPrevVote = "SELECT * FROM vote WHERE lower(nickname)=lower($1) AND thread_id=$2"
 const updateVote = "UPDATE TABLE vote SET voice=$1 WHERE id=$2"
 
@@ -96,6 +94,7 @@ func PutVote(slugOrID string, vote *models.Vote) (*models.Thread, int) {
 	defer tx.Commit()
 
 	thread := models.Thread{}
+	// ID, err := strconv.Atoi(slugOrID)
 
 	var ID int
 	var err error
@@ -138,30 +137,24 @@ func PutVote(slugOrID string, vote *models.Vote) (*models.Thread, int) {
 	return &thread, 200
 }
 
-func GetThread(slugOrID *string) (*models.Thread, int) {
+const getThreadById = "SELECT * FROM thread WHERE id=$1"
+const getThreadBySlug = "SELECT * FROM thread WHERE lower(slug)=lower($1)"
+
+func GetThread(slugOrID interface{}) (*models.Thread, error) {
 	tx := db.MustBegin()
 	defer tx.Commit()
 
 	thread := models.Thread{}
 
-	var ID int
-	var err error
+	_, err := strconv.Atoi(slugOrID.(string))
 
-	if ID, err = strconv.Atoi(*slugOrID); err != nil {
+	if err != nil {
 		err = tx.Get(&thread, getThreadBySlug, slugOrID)
-		if err != nil {
-			tx.Rollback()
-			return nil, 404
-		}
-	} else {
-		err = tx.Get(&thread, getThreadById, ID)
-		if err != nil {
-			tx.Rollback()
-			return nil, 404
-		}
+		return &thread, err
 	}
 
-	return &thread, 200
+	err = tx.Get(&thread, getThreadById, slugOrID)
+	return &thread, err
 }
 
 const checkThreadId = "SELECT id FROM thread WHERE id=$1"

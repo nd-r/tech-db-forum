@@ -1,13 +1,13 @@
 -- SET SYNCHRONOUS_COMMIT = 'off';
 CREATE EXTENSION IF NOT EXISTS CITEXT;
 
-DROP INDEX IF EXISTS usersEmailIndex;
-DROP INDEX IF EXISTS usersNicknameIndex;
-DROP INDEX IF EXISTS forumSlugIndex;
-DROP INDEX IF EXISTS voteNicknameAndThreadIdIndex;
+DROP INDEX IF EXISTS users_email_index;
+DROP INDEX IF EXISTS users_nickname_index;
+DROP INDEX IF EXISTS forum_slug_index;
+DROP INDEX IF EXISTS vote_nickname_threadid_index;
 DROP INDEX IF EXISTS threadSlugIndex;
 
-DROP TRIGGER IF EXISTS on_vote_insert
+DROP TRIGGER IF EXISTS on_vote_insert_trigger
 ON vote;
 DROP TRIGGER IF EXISTS on_vote_update
 ON vote;
@@ -30,6 +30,48 @@ DROP TABLE IF EXISTS post CASCADE;
 DROP TABLE IF EXISTS vote CASCADE;
 DROP TABLE IF EXISTS forum_users CASCADE;
 
+CREATE FUNCTION thread_insert()
+  RETURNS TRIGGER AS '
+BEGIN
+  UPDATE forum
+  SET
+    threads = forum.threads + 1
+  WHERE slug = NEW.forum_slug;
+  RETURN NULL;
+END;
+' LANGUAGE plpgsql;
+
+CREATE FUNCTION vote_insert()
+  RETURNS TRIGGER AS '
+BEGIN
+  UPDATE thread
+  SET
+    votes_count = thread.votes_count + NEW.voice
+  WHERE id = NEW.thread_id;
+  RETURN NULL;
+END;
+' LANGUAGE plpgsql;
+
+CREATE FUNCTION vote_update()
+  RETURNS TRIGGER AS '
+BEGIN
+
+  IF OLD.voice = NEW.voice
+  THEN
+    RETURN NULL;
+  END IF;
+
+  UPDATE thread
+  SET
+    votes_count = thread.votes_count +
+                  CASE WHEN NEW.voice = -1
+                    THEN -2
+                  ELSE 2 END
+  WHERE id = NEW.thread_id;
+  RETURN NULL;
+END;
+' LANGUAGE plpgsql;
+
 -- USERS
 CREATE TABLE users (
   id       SERIAL PRIMARY KEY,
@@ -39,10 +81,10 @@ CREATE TABLE users (
   nickname VARCHAR(50) NOT NULL UNIQUE
 );
 
-CREATE UNIQUE INDEX usersNicknameIndex
+CREATE UNIQUE INDEX users_nickname_index
   ON users (lower(nickname));
 
-CREATE UNIQUE INDEX usersEmailIndex
+CREATE UNIQUE INDEX users_email_index
   ON users (lower(email));
 
 --
@@ -57,7 +99,7 @@ CREATE TABLE forum (
   moderator VARCHAR(50)  NOT NULL
 );
 
-CREATE UNIQUE INDEX forumSlugIndex
+CREATE UNIQUE INDEX forum_slug_index
   ON forum (lower(slug));
 
 --
@@ -84,88 +126,48 @@ CREATE UNIQUE INDEX threadSlugIndex
 CREATE TABLE post (
   id         SERIAL PRIMARY KEY,
 
-  user_nick  VARCHAR(50)               NOT NULL,
-  message    TEXT                      NOT NULL,
+  user_nick  VARCHAR(50)  NOT NULL,
+  message    TEXT         NOT NULL,
   created    TIMESTAMP WITH TIME ZONE,
-  forum_slug VARCHAR(100)              NOT NULL,
-  thread_id  INTEGER REFERENCES thread NOT NULL,
-  is_edited  BOOLEAN                   NOT NULL DEFAULT FALSE,
-  parent     INTEGER                            DEFAULT 0,
-  parents    INTEGER []                NOT NULL
+  forum_slug VARCHAR(100) NOT NULL,
+  thread_id  INTEGER      NOT NULL REFERENCES thread,
+  is_edited  BOOLEAN      NOT NULL DEFAULT FALSE,
+  parent     INTEGER               DEFAULT 0 REFERENCES post (id),
+  parents    INTEGER []   NOT NULL
 );
 
 --
 -- VOTE
 --
 CREATE TABLE vote (
-  id        SERIAL PRIMARY KEY,
+  id         SERIAL PRIMARY KEY,
 
-  nickname  VARCHAR(50) NOT NULL,
-  thread_id INTEGER REFERENCES thread,
-  voice     INTEGER
+  nickname   VARCHAR(50) NOT NULL,
+  thread_id  INTEGER     NOT NULL REFERENCES thread,
+  voice      INTEGER,
+  prev_voice INTEGER DEFAULT 0,
+  CONSTRAINT unique_user_and_thread UNIQUE (nickname, thread_id)
 );
-CREATE UNIQUE INDEX voteNicknameAndThreadIdIndex
+CREATE UNIQUE INDEX vote_nickname_threadid_index
   ON vote (nickname, thread_id);
 
-CREATE FUNCTION vote_insert()
-  RETURNS TRIGGER AS '
-BEGIN
-  UPDATE thread
-  SET
-    votes_count = thread.votes_count + NEW.voice
-  WHERE id = NEW.thread_id;
-  RETURN NULL;
-END;
-' LANGUAGE plpgsql;
-
-CREATE FUNCTION thread_insert()
-  RETURNS TRIGGER AS '
-BEGIN
-  UPDATE forum
-  SET
-    threads = forum.threads + 1
-  WHERE slug = NEW.forum_slug;
-  RETURN NULL;
-END;
-' LANGUAGE plpgsql;
-
-CREATE TRIGGER on_thread_insert
-AFTER INSERT
-  ON thread
-FOR EACH ROW EXECUTE PROCEDURE thread_insert();
-
-CREATE TRIGGER on_vote_insert
+CREATE TRIGGER on_vote_insert_trigger
 AFTER INSERT
   ON vote
 FOR EACH ROW EXECUTE PROCEDURE vote_insert();
 
-CREATE FUNCTION vote_update()
-  RETURNS TRIGGER AS '
-BEGIN
-
-  IF OLD.voice = NEW.voice
-  THEN
-    RETURN NULL;
-  END IF;
-
-  UPDATE thread
-  SET
-    votes_count = thread.votes_count +
-                  CASE WHEN NEW.voice = -1
-                    THEN -2
-                  ELSE 2 END
-  WHERE id = NEW.thread_id;
-  RETURN NULL;
-END;
-' LANGUAGE plpgsql;
 
 CREATE TRIGGER on_vote_update
 AFTER UPDATE
   ON vote
 FOR EACH ROW EXECUTE PROCEDURE vote_update();
 
--- CREATE FUNCTION on_vote()
---   RETURNS TRIGGER AS 'BEGIN IF(TG_OP = 'UPDATE') THEN IF  END;' LANGUAGE plpgsql;
+
+CREATE TRIGGER on_thread_insert
+AFTER INSERT
+  ON thread
+FOR EACH ROW EXECUTE PROCEDURE thread_insert();
+
 
 CREATE TABLE forum_users (
   forumId INTEGER REFERENCES forum,

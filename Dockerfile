@@ -21,7 +21,6 @@ USER postgres
 RUN /etc/init.d/postgresql start &&\
     psql --command "CREATE USER docker WITH SUPERUSER PASSWORD 'docker';" &&\
     createdb -O docker docker &&\
-    \c db_1 CREATE EXTENSION citext;&&\
     /etc/init.d/postgresql stop
 
 # Adjust PostgreSQL configuration so that remote connections to the
@@ -58,7 +57,6 @@ ENV GOPATH $HOME/go
 ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
 
 ADD ./ $GOPATH/src/github.com/nd-r/tech-db-forum/
-# RUN go get -u github.com/nd-r/tech-db-forum/
 RUN go install github.com/nd-r/tech-db-forum/
 
 WORKDIR ${GOPATH}/src/github.com/nd-r/tech-db-forum/

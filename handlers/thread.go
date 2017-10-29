@@ -1,17 +1,17 @@
 package handlers
 
 import (
-	"log"
 	"github.com/nd-r/tech-db-forum/database"
 	"github.com/nd-r/tech-db-forum/models"
 	"github.com/valyala/fasthttp"
+	"log"
 )
 
 // CreateNewPosts - создание новых постов
 // POST /thread/{slug_or_id}/create
 func CreateNewPosts(ctx *fasthttp.RequestCtx) {
 	ctx.SetContentType("application/json")
-	slugOrID := ctx.UserValue("slug_or_id").(string)
+	slugOrID := ctx.UserValue("slug_or_id")
 
 	postsArr := models.PostArr{}
 	postsArr.UnmarshalJSON(ctx.PostBody())
@@ -47,7 +47,7 @@ func GetThreadDetails(ctx *fasthttp.RequestCtx) {
 
 	var resp []byte
 	resp, err = thread.MarshalJSON()
-	if err != nil{
+	if err != nil {
 		log.Fatalln(err)
 	}
 
@@ -107,19 +107,26 @@ func GetThreadPosts(ctx *fasthttp.RequestCtx) {
 // POST /thread/{slug_or_id}/vote
 func VoteThread(ctx *fasthttp.RequestCtx) {
 	ctx.SetContentType("application/json")
-	vote := models.Vote{}
+	var vote models.Vote
 	vote.UnmarshalJSON(ctx.PostBody())
 
-	slugOrID := ctx.UserValue("slug_or_id").(string)
+	slugOrID := ctx.UserValue("slug_or_id")
 
-	thread, statusCode := database.PutVote(slugOrID, &vote)
-	ctx.SetStatusCode(statusCode)
+	pqErr := database.PutVote(slugOrID, &vote)
 
-	switch statusCode {
-	case 200:
-		resp, _ := thread.MarshalJSON()
-		ctx.Write(resp)
-	case 404:
+	if pqErr != nil {
+		ctx.SetStatusCode(404)
 		ctx.Write(models.ErrorMsg)
+		return
 	}
+
+	thread, err := database.GetThread(slugOrID)
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	ctx.SetStatusCode(200)
+	resp, _ := thread.MarshalJSON()
+	ctx.Write(resp)
 }

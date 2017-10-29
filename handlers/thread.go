@@ -112,18 +112,12 @@ func VoteThread(ctx *fasthttp.RequestCtx) {
 
 	slugOrID := ctx.UserValue("slug_or_id")
 
-	pqErr := database.PutVote(slugOrID, &vote)
-
-	if pqErr != nil {
+	thread, err := database.PutVote(slugOrID, &vote)
+	if err != nil {
+		log.Println(err)
 		ctx.SetStatusCode(404)
 		ctx.Write(models.ErrorMsg)
 		return
-	}
-
-	thread, err := database.GetThread(slugOrID)
-
-	if err != nil {
-		log.Fatalln(err)
 	}
 
 	ctx.SetStatusCode(200)

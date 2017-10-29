@@ -84,31 +84,29 @@ func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostAr
 	return &postsAdded, 201
 }
 
-const putVoteByThrID = "INSERT INTO vote (nickname, thread_id, voice) VALUES ((SELECT nickname FROM users WHERE lower(nickname)=lower($1)), $2, $3) ON CONFLICT ON CONSTRAINT unique_user_and_thread DO UPDATE SET voice = EXCLUDED.voice"
-const putVoteByThrSLUG = "INSERT INTO vote (nickname, thread_id, voice) VALUES ((SELECT nickname FROM users WHERE lower(nickname)=lower($1)), (SELECT id FROM thread WHERE lower(slug)=lower($2)), $3) ON CONFLICT ON CONSTRAINT unique_user_and_thread DO UPDATE SET voice = EXCLUDED.voice"
+const putVoteByThrID = "WITH sub AS (INSERT INTO vote (user_id, thread_id, voice) VALUES ((SELECT id FROM users WHERE lower(nickname) = lower($1)), $2, $3) ON CONFLICT ON CONSTRAINT unique_user_and_thread DO UPDATE SET prev_voice = vote.voice ,voice = EXCLUDED.voice RETURNING prev_voice, voice, thread_id) UPDATE thread SET votes_count = votes_count - (SELECT prev_voice-voice FROM sub) WHERE id = $2 RETURNING *;"
+const putVoteByThrSLUG = "WITH sub AS (INSERT INTO vote (user_id, thread_id, voice) VALUES ((SELECT id FROM users WHERE lower(nickname) = lower($1)), (SELECT id FROM thread WHERE lower(slug) = lower($2)), $3) ON CONFLICT ON CONSTRAINT unique_user_and_thread DO UPDATE SET prev_voice = vote.voice ,voice = EXCLUDED.voice RETURNING prev_voice, voice, thread_id) UPDATE thread SET votes_count = votes_count - (SELECT prev_voice-voice FROM sub) WHERE id = (SELECT thread_id FROM sub) RETURNING *;"
 
-func PutVote(slugOrID interface{}, vote *models.Vote) *pq.Error {
+func PutVote(slugOrID interface{}, vote *models.Vote) (*models.Thread, error){
 	tx := db.MustBegin()
 	defer tx.Commit()
 
 	_, err := strconv.Atoi(slugOrID.(string));
 
+	thread := models.Thread{}	
+
 	if  err != nil {
-		_, err = tx.Exec(putVoteByThrSLUG, vote.Nickname, slugOrID, vote.Voice)
+		err = tx.Get(&thread, putVoteByThrSLUG, vote.Nickname, slugOrID, vote.Voice)
 	} else {
-		_, err = tx.Exec(putVoteByThrID, vote.Nickname, slugOrID, vote.Voice)
+		err = tx.Get(&thread, putVoteByThrID, vote.Nickname, slugOrID, vote.Voice)
 	}
 
 	if err != nil {
 		tx.Rollback()
-		pqErr, ok := err.(*pq.Error)
-		if !ok {
-			log.Fatalln(err)
-		}
-		return pqErr
+		return nil, err
 	}
 	
-	return nil
+	return &thread, nil
 }
 
 const getThreadById = "SELECT * FROM thread WHERE id=$1"

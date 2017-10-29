@@ -1,5 +1,4 @@
--- SET SYNCHRONOUS_COMMIT = 'off';
-CREATE EXTENSION IF NOT EXISTS CITEXT;
+SET SYNCHRONOUS_COMMIT = 'off';
 
 DROP INDEX IF EXISTS users_email_index;
 DROP INDEX IF EXISTS users_nickname_index;
@@ -7,10 +6,6 @@ DROP INDEX IF EXISTS forum_slug_index;
 DROP INDEX IF EXISTS vote_nickname_threadid_index;
 DROP INDEX IF EXISTS threadSlugIndex;
 
-DROP TRIGGER IF EXISTS on_vote_insert_trigger
-ON vote;
-DROP TRIGGER IF EXISTS on_vote_update
-ON vote;
 DROP TRIGGER IF EXISTS on_thread_insert
 ON thread;
 DROP TRIGGER IF EXISTS on_thread_insert_user
@@ -29,48 +24,6 @@ DROP TABLE IF EXISTS thread CASCADE;
 DROP TABLE IF EXISTS post CASCADE;
 DROP TABLE IF EXISTS vote CASCADE;
 DROP TABLE IF EXISTS forum_users CASCADE;
-
-CREATE FUNCTION thread_insert()
-  RETURNS TRIGGER AS '
-BEGIN
-  UPDATE forum
-  SET
-    threads = forum.threads + 1
-  WHERE slug = NEW.forum_slug;
-  RETURN NULL;
-END;
-' LANGUAGE plpgsql;
-
-CREATE FUNCTION vote_insert()
-  RETURNS TRIGGER AS '
-BEGIN
-  UPDATE thread
-  SET
-    votes_count = thread.votes_count + NEW.voice
-  WHERE id = NEW.thread_id;
-  RETURN NULL;
-END;
-' LANGUAGE plpgsql;
-
-CREATE FUNCTION vote_update()
-  RETURNS TRIGGER AS '
-BEGIN
-
-  IF OLD.voice = NEW.voice
-  THEN
-    RETURN NULL;
-  END IF;
-
-  UPDATE thread
-  SET
-    votes_count = thread.votes_count +
-                  CASE WHEN NEW.voice = -1
-                    THEN -2
-                  ELSE 2 END
-  WHERE id = NEW.thread_id;
-  RETURN NULL;
-END;
-' LANGUAGE plpgsql;
 
 -- USERS
 CREATE TABLE users (
@@ -120,6 +73,22 @@ CREATE TABLE thread (
 CREATE UNIQUE INDEX threadSlugIndex
   ON thread (lower(slug));
 
+CREATE FUNCTION thread_insert()
+  RETURNS TRIGGER AS '
+BEGIN
+  UPDATE forum
+  SET
+    threads = forum.threads + 1
+  WHERE slug = NEW.forum_slug;
+  RETURN NULL;
+END;
+' LANGUAGE plpgsql;
+
+CREATE TRIGGER on_thread_insert
+AFTER INSERT
+  ON thread
+FOR EACH ROW EXECUTE PROCEDURE thread_insert();
+
 --
 -- POST
 --
@@ -132,7 +101,7 @@ CREATE TABLE post (
   forum_slug VARCHAR(100) NOT NULL,
   thread_id  INTEGER      NOT NULL REFERENCES thread,
   is_edited  BOOLEAN      NOT NULL DEFAULT FALSE,
-  parent     INTEGER               DEFAULT 0 REFERENCES post (id),
+  parent     INTEGER               DEFAULT 0,
   parents    INTEGER []   NOT NULL
 );
 
@@ -142,31 +111,14 @@ CREATE TABLE post (
 CREATE TABLE vote (
   id         SERIAL PRIMARY KEY,
 
-  nickname   VARCHAR(50) NOT NULL,
-  thread_id  INTEGER     NOT NULL REFERENCES thread,
+  user_id    INTEGER NOT NULL,
+  thread_id  INTEGER NOT NULL REFERENCES thread,
   voice      INTEGER,
   prev_voice INTEGER DEFAULT 0,
-  CONSTRAINT unique_user_and_thread UNIQUE (nickname, thread_id)
+  CONSTRAINT unique_user_and_thread UNIQUE (user_id, thread_id)
 );
 CREATE UNIQUE INDEX vote_nickname_threadid_index
-  ON vote (nickname, thread_id);
-
-CREATE TRIGGER on_vote_insert_trigger
-AFTER INSERT
-  ON vote
-FOR EACH ROW EXECUTE PROCEDURE vote_insert();
-
-
-CREATE TRIGGER on_vote_update
-AFTER UPDATE
-  ON vote
-FOR EACH ROW EXECUTE PROCEDURE vote_update();
-
-
-CREATE TRIGGER on_thread_insert
-AFTER INSERT
-  ON thread
-FOR EACH ROW EXECUTE PROCEDURE thread_insert();
+  ON vote (user_id, thread_id);
 
 
 CREATE TABLE forum_users (
@@ -193,3 +145,5 @@ FOR EACH ROW EXECUTE PROCEDURE forum_users_update();
 CREATE TRIGGER on_post_insert_user
 AFTER INSERT ON post
 FOR EACH ROW EXECUTE PROCEDURE forum_users_update();
+
+

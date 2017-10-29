@@ -6,26 +6,24 @@ import (
 	"strings"
 )
 
-const createUserQuery = "INSERT INTO users (about, email, fullname, nickname) VALUES ($1, $2, $3, $4)  RETURNING about, email, fullname, nickname"
+const createUserQuery = "INSERT INTO users (about, email, fullname, nickname) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING RETURNING id"
 const selectUsrByNickOrEmailQuery = "SELECT about, email, fullname, nickname FROM users WHERE lower(nickname)=lower($1) OR lower(email)=lower($2)"
 
-func CreateUser(usr *models.User) (*models.UsersArr, int) {
+func CreateUser(usr *models.User, nickname interface{}) (*models.UsersArr, error) {
 	tx := db.MustBegin()
 	defer tx.Commit()
 
-	userArr := models.UsersArr{}
-	user := models.User{}
-	tx.Select(&userArr, selectUsrByNickOrEmailQuery, usr.Nickname, usr.Email)
-
-	if len(userArr) == 0 {
-		err := tx.Get(&user, createUserQuery, usr.About, usr.Email, usr.Fullname, usr.Nickname)
-		if err != nil {
-			log.Fatal(err)
+	var id int
+	err := tx.Get(&id, createUserQuery, usr.About, usr.Email, usr.Fullname, nickname)
+	if err != nil{
+		var users models.UsersArr
+		err := tx.Select(&users, selectUsrByNickOrEmailQuery, nickname, usr.Email)
+		if err != nil{
+			log.Fatalln(err);
 		}
-		usr = &user
-		return nil, 201
+		return &users, nil;
 	}
-	return &userArr, 409
+	return nil, nil;
 }
 
 const getUserProfileQuery = "SELECT about, email, fullname, nickname FROM users WHERE lower(nickname)=lower($1)"
@@ -67,7 +65,7 @@ func UpdateUserProfile(newData *models.UserUpd) (*models.User, int) {
 			if newData.Fullname != nil {
 				userArr[0].Fullname = *newData.Fullname
 			}
-			
+
 			tx.Select(&userArr[0], updateUserProfileQuery, userArr[0].About, userArr[0].Email, userArr[0].Fullname, userArr[0].Nickname)
 
 			return &userArr[0], 200

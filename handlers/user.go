@@ -13,20 +13,20 @@ func CreateUser(ctx *fasthttp.RequestCtx) {
 
 	var user models.User
 	user.UnmarshalJSON(ctx.PostBody())
+	nickname := ctx.UserValue("nickname")
 
-	user.Nickname = ctx.UserValue("nickname").(string)
-
-	userArr, statusCode := database.CreateUser(&user)
-	ctx.SetStatusCode(statusCode)
-
-	switch statusCode {
-	case 201:
-		resp, _ := user.MarshalJSON()
-		ctx.Write(resp)
-	case 409:
+	userArr, _ := database.CreateUser(&user, nickname)
+	if userArr != nil{
+		ctx.SetStatusCode(409)
 		resp, _ := userArr.MarshalJSON()
 		ctx.Write(resp)
+		return
 	}
+
+	user.Nickname = nickname.(string)
+	ctx.SetStatusCode(201)
+	resp, _ := user.MarshalJSON()
+	ctx.Write(resp)
 }
 
 // GetUserProfile - получение информации о пользователе

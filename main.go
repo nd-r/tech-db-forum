@@ -17,7 +17,7 @@ func main() {
 	// runtime.GOMAXPROCS(8)
 
 	database.DBPoolInit()
-	// database.InitDBSchema()
+	database.InitDBSchema()
 
 	router := services.RouterInit()
 

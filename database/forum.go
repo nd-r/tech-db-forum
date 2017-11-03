@@ -119,7 +119,7 @@ func GetForumThreads(slug *interface{}, limit []byte, since []byte, desc []byte)
 	return &threads, 200
 }
 
-const getForumUsersQuery = "SELECT us.about, us.email, us.fullname, us.nickname FROM forum_users f JOIN forum fo ON fo.id = f.forumId JOIN users us ON us.id = f.userID WHERE lower(fo.slug) = lower($1) AND lower(nickname) > lower(coalesce($2, '')) GROUP BY f.forumid, f.userid, us.about, us.email, us.fullname, us.nickname ORDER BY lower(nickname) $4 LIMIT $3::INTEGER"
+const getForumUsersQuery = "SELECT us.about, us.email, us.fullname, us.nickname FROM forum_users f JOIN users us ON us.id = f.userID WHERE f.forumid = (SELECT id FROM forum WHERE lower(slug) = lower($1)) AND lower(nickname) > lower(coalesce($2, '')) ORDER BY lower(nickname) $4 LIMIT $3:: INTEGER"
 const checkForumSlug = "SELECT slug FROM forum WHERE lower(slug)=lower($1)"
 
 func GetForumUsers(slug *string, limit []byte, since []byte, desc []byte) (*models.UsersArr, int) {

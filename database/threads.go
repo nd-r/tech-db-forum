@@ -23,6 +23,8 @@ const insertPost = "WITH nextID AS (SELECT nextval('post_id_seq') as id), parent
 	"((SELECT parents FROM parent_info) || (SELECT id FROM nextID)::INTEGER))" +
 	"RETURNING id, user_nick, message, created, forum_slug,thread_id,is_edited, parent"
 
+const insert_forum_users = "INSERT INTO forum_users VALUES ((SELECT id FROM forum WHERE lower(slug) = lower($1)), (SELECT id FROM users WHERE lower(nickname) = lower($2))) ON CONFLICT DO NOTHING"
+
 const UpdateForumPosts = "UPDATE forum SET posts=posts + $2 WHERE slug=$1"
 
 func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostArr, int) {
@@ -76,6 +78,18 @@ func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostAr
 	if rows != nil {
 		rows.Close()
 	}
+
+	prep, err = tx.Preparex(insert_forum_users)
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// }
+	for _, val := range postsAdded{
+		_, err = prep.Exec(val.Forum_slug, val.User_nick);
+		if err != nil {
+			log.Println(err)
+		}
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		log.Fatalln(err)

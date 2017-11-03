@@ -5,6 +5,11 @@ DROP INDEX IF EXISTS users_nickname_index;
 DROP INDEX IF EXISTS forum_slug_index;
 DROP INDEX IF EXISTS vote_nickname_threadid_index;
 DROP INDEX IF EXISTS threadSlugIndex;
+DROP INDEX IF EXISTS posts_thread_id_index;
+DROP INDEX IF EXISTS posts_parents_index;
+DROP INDEX IF EXISTS posts_thread_id_parents_index;
+DROP INDEX IF EXISTS posts_parents;
+DROP INDEX IF EXISTS forum_users_forum_id_user_id_index;
 
 DROP TRIGGER IF EXISTS on_thread_insert
 ON thread;
@@ -105,6 +110,18 @@ CREATE TABLE post (
   parents    INTEGER []   NOT NULL
 );
 
+CREATE UNIQUE INDEX posts_thread_id_index
+  ON post (thread_id, id);
+
+CREATE INDEX posts_parents_index
+  ON post
+  USING GIN (parents);
+
+CREATE UNIQUE INDEX posts_thread_id_parents_index
+  ON post (thread_id, parents);
+CREATE UNIQUE INDEX posts_parents
+  ON post (parent, thread_id, parents);
+
 --
 -- VOTE
 --
@@ -123,8 +140,11 @@ CREATE UNIQUE INDEX vote_nickname_threadid_index
 
 CREATE TABLE forum_users (
   forumId INTEGER REFERENCES forum,
-  userId  INTEGER REFERENCES users
+  userId  INTEGER REFERENCES users,
+  UNIQUE (forumId, userId)
 );
+
+CREATE UNIQUE INDEX forum_users_index ON forum_users(forumId, userId);
 
 CREATE FUNCTION forum_users_update()
   RETURNS TRIGGER AS 'BEGIN INSERT INTO forum_users (forumId, userId) VALUES ((SELECT id
@@ -134,7 +154,7 @@ CREATE FUNCTION forum_users_update()
                                                                               (SELECT id
                                                                                FROM users
                                                                                WHERE lower(nickname) =
-                                                                                     lower(NEW.user_nick)));
+                                                                                     lower(NEW.user_nick))) ON CONFLICT DO NOTHING ;
   RETURN NULL;
 END;' LANGUAGE plpgsql;
 
@@ -142,8 +162,8 @@ CREATE TRIGGER on_thread_insert_user
 AFTER INSERT ON thread
 FOR EACH ROW EXECUTE PROCEDURE forum_users_update();
 
-CREATE TRIGGER on_post_insert_user
-AFTER INSERT ON post
-FOR EACH ROW EXECUTE PROCEDURE forum_users_update();
+-- CREATE TRIGGER on_post_insert_user
+-- AFTER INSERT ON post
+-- FOR EACH ROW EXECUTE PROCEDURE forum_users_update();
 
 

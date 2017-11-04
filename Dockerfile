@@ -26,7 +26,7 @@ RUN /etc/init.d/postgresql start &&\
 # Adjust PostgreSQL configuration so that remote connections to the
 # database are possible.
 RUN echo "host all  all    0.0.0.0/0  md5" >>\
- /etc/postgresql/$PGVER/main/pg_hba.conf
+    /etc/postgresql/$PGVER/main/pg_hba.conf
 
 # And add ``listen_addresses`` to ``/etc/postgresql/$PGVER/main/postgresql.conf``
 RUN echo "listen_addresses='*'" >> /etc/postgresql/$PGVER/main/postgresql.conf
@@ -58,6 +58,14 @@ ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
 
 ADD ./ $GOPATH/src/github.com/nd-r/tech-db-forum/
 RUN go install github.com/nd-r/tech-db-forum/
+
+RUN echo "synchronous_commit='off'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "shared_buffers = 512MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "effective_cache_size = 1024MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "wal_writer_delay = 2000ms" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "commit_delay = 5000" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "checkpoint_flush_after = 2MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
+
 
 WORKDIR ${GOPATH}/src/github.com/nd-r/tech-db-forum/
 

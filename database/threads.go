@@ -184,7 +184,7 @@ func GetThreadPosts(slugOrID *string, limit []byte, since []byte, sort []byte, d
 	}
 
 	var query string
-
+	
 	switch string(sort) {
 	case "tree":
 		query = getPostsTree

@@ -10,6 +10,8 @@ DROP INDEX IF EXISTS posts_parents_index;
 DROP INDEX IF EXISTS posts_thread_id_parents_index;
 DROP INDEX IF EXISTS posts_parents;
 DROP INDEX IF EXISTS forum_users_forum_id_user_id_index;
+DROP INDEX IF EXISTS thread_forum_slug_index;
+DROP INDEX IF EXISTS thread_forum_slug_created_index;
 
 DROP TRIGGER IF EXISTS on_thread_insert
 ON thread;
@@ -18,8 +20,7 @@ ON thread;
 DROP TRIGGER IF EXISTS on_post_insert_user
 ON post;
 
-DROP FUNCTION IF EXISTS vote_insert() CASCADE;
-DROP FUNCTION IF EXISTS vote_update() CASCADE;
+DROP FUNCTION IF EXISTS findForum(myslug TEXT );
 DROP FUNCTION IF EXISTS thread_insert() CASCADE;
 DROP FUNCTION IF EXISTS forum_users_update() CASCADE;
 
@@ -34,9 +35,9 @@ DROP TABLE IF EXISTS forum_users CASCADE;
 CREATE TABLE users (
   id       SERIAL PRIMARY KEY,
   about    TEXT DEFAULT NULL,
-  email    VARCHAR(50) NOT NULL UNIQUE,
-  fullname VARCHAR(50) NOT NULL,
-  nickname VARCHAR(50) NOT NULL UNIQUE
+  email    TEXT NOT NULL UNIQUE,
+  fullname TEXT NOT NULL,
+  nickname TEXT NOT NULL UNIQUE
 );
 
 CREATE UNIQUE INDEX users_nickname_index
@@ -50,11 +51,11 @@ CREATE UNIQUE INDEX users_email_index
 --
 CREATE TABLE forum (
   id        SERIAL PRIMARY KEY,
-  slug      VARCHAR(50)  NOT NULL UNIQUE,
-  title     VARCHAR(100) NOT NULL,
-  posts     BIGINT       NOT NULL DEFAULT 0,
-  threads   INTEGER      NOT NULL DEFAULT 0,
-  moderator VARCHAR(50)  NOT NULL
+  slug      TEXT    NOT NULL UNIQUE,
+  title     TEXT    NOT NULL,
+  posts     BIGINT  NOT NULL DEFAULT 0,
+  threads   INTEGER NOT NULL DEFAULT 0,
+  moderator TEXT    NOT NULL
 );
 
 CREATE UNIQUE INDEX forum_slug_index
@@ -66,17 +67,25 @@ CREATE UNIQUE INDEX forum_slug_index
 CREATE TABLE thread (
   id          SERIAL PRIMARY KEY,
 
-  slug        VARCHAR(50) UNIQUE DEFAULT NULL,
-  title       VARCHAR(100) NOT NULL,
-  message     TEXT         NOT NULL,
-  forum_slug  VARCHAR(100) NOT NULL,
-  user_nick   VARCHAR(50)  NOT NULL,
+  slug        TEXT UNIQUE DEFAULT NULL,
+  title       TEXT NOT NULL,
+  message     TEXT NOT NULL,
+  forum_slug  TEXT NOT NULL,
+  user_nick   TEXT NOT NULL,
   created     TIMESTAMP WITH TIME ZONE,
-  votes_count INTEGER            DEFAULT 0
+  votes_count INTEGER     DEFAULT 0
 );
 
 CREATE UNIQUE INDEX threadSlugIndex
   ON thread (lower(slug));
+
+CREATE INDEX thread_forum_slug_index
+  ON thread (lower(forum_slug));
+
+CREATE INDEX thread_forum_slug_created_index
+  ON thread (lower(forum_slug), created );
+CREATE INDEX thread_forum_slug_created_asc_index
+  ON thread (lower(forum_slug), created ASC);
 
 CREATE FUNCTION thread_insert()
   RETURNS TRIGGER AS '
@@ -100,18 +109,19 @@ FOR EACH ROW EXECUTE PROCEDURE thread_insert();
 CREATE TABLE post (
   id         SERIAL PRIMARY KEY,
 
-  user_nick  VARCHAR(50)  NOT NULL,
-  message    TEXT         NOT NULL,
+  user_nick  TEXT       NOT NULL,
+  message    TEXT       NOT NULL,
   created    TIMESTAMP WITH TIME ZONE,
-  forum_slug VARCHAR(100) NOT NULL,
-  thread_id  INTEGER      NOT NULL REFERENCES thread,
-  is_edited  BOOLEAN      NOT NULL DEFAULT FALSE,
-  parent     INTEGER               DEFAULT 0,
-  parents    INTEGER []   NOT NULL
+  forum_slug TEXT       NOT NULL,
+  thread_id  INTEGER    NOT NULL REFERENCES thread,
+  is_edited  BOOLEAN    NOT NULL DEFAULT FALSE,
+  parent     INTEGER             DEFAULT 0,
+  parents    INTEGER [] NOT NULL
 );
 
 CREATE UNIQUE INDEX posts_thread_id_index
   ON post (thread_id, id);
+
 
 CREATE INDEX posts_parents_index
   ON post
@@ -144,7 +154,8 @@ CREATE TABLE forum_users (
   UNIQUE (forumId, userId)
 );
 
-CREATE UNIQUE INDEX forum_users_index ON forum_users(forumId, userId);
+CREATE UNIQUE INDEX forum_users_index
+  ON forum_users (forumId, userId);
 
 CREATE FUNCTION forum_users_update()
   RETURNS TRIGGER AS 'BEGIN INSERT INTO forum_users (forumId, userId) VALUES ((SELECT id
@@ -154,7 +165,8 @@ CREATE FUNCTION forum_users_update()
                                                                               (SELECT id
                                                                                FROM users
                                                                                WHERE lower(nickname) =
-                                                                                     lower(NEW.user_nick))) ON CONFLICT DO NOTHING ;
+                                                                                     lower(NEW.user_nick)))
+ON CONFLICT DO NOTHING;
   RETURN NULL;
 END;' LANGUAGE plpgsql;
 

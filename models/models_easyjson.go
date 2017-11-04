@@ -1444,6 +1444,8 @@ func easyjsonD2b7633eDecodeGithubComNdRTechDbForumModels13(in *jlexer.Lexer, out
 			continue
 		}
 		switch key {
+		case "Id":
+			out.Id = int(in.Int())
 		case "posts":
 			if in.IsNull() {
 				in.Skip()
@@ -1484,6 +1486,12 @@ func easyjsonD2b7633eEncodeGithubComNdRTechDbForumModels13(out *jwriter.Writer, 
 	out.RawByte('{')
 	first := true
 	_ = first
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"Id\":")
+	out.Int(int(in.Id))
 	if !first {
 		out.RawByte(',')
 	}

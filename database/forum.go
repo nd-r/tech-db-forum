@@ -1,6 +1,7 @@
 package database
 
 import (
+	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/nd-r/tech-db-forum/models"
 	"log"
@@ -75,47 +76,48 @@ func GetForumThreads(slug *interface{}, limit []byte, since []byte, desc []byte)
 	defer tx.Commit()
 
 	isDesc := string(desc) == "true"
-	query := getForumThreads
+
+	var err error
+	var query string
+	var threads models.TreadArr
 
 	if since != nil {
 		if !isDesc {
-			query += " AND created >= $2"
+			query = "WITH findForum AS (SELECT lower(slug) as l_forum_slug FROM forum WHERE lower(slug) = lower($1)) SELECT * FROM (SELECT * FROM thread WHERE lower(forum_slug)=(SELECT l_forum_slug FROM findForum) AND created >= $2 ORDER BY created LIMIT $3) s UNION ALL (SELECT 0, '', '','', COALESCE((SELECT l_forum_slug FROM findForum), ''), '', NULL, NULL)"
 		} else {
-			query += " AND created <= $2"
+			query = "WITH findForum AS (SELECT lower(slug) as l_forum_slug FROM forum WHERE lower(slug) = lower($1)) SELECT * FROM (SELECT * FROM thread WHERE lower(forum_slug)=(SELECT l_forum_slug FROM findForum) AND created <= $2 ORDER BY created DESC LIMIT $3) s UNION ALL (SELECT 0, '', '','', COALESCE((SELECT l_forum_slug FROM findForum), ''), '', NULL, NULL)"
+		}
+		if limit != nil {
+			err = tx.Select(&threads, query, slug, since, limit)
+		} else {
+			err = tx.Select(&threads, query, slug, since, nil)
+		}
+	} else {
+		if !isDesc {
+			query = "WITH findForum AS (SELECT lower(slug) as l_forum_slug FROM forum WHERE lower(slug) = lower($1)) SELECT * FROM (SELECT * FROM thread WHERE lower(forum_slug)=(SELECT l_forum_slug FROM findForum) ORDER BY created LIMIT $2) s UNION ALL (SELECT 0, '', '','', COALESCE((SELECT l_forum_slug FROM findForum), ''), '', NULL, NULL)"
+		} else {
+			query = "WITH findForum AS (SELECT lower(slug) as l_forum_slug FROM forum WHERE lower(slug) = lower($1)) SELECT * FROM (SELECT * FROM thread WHERE lower(forum_slug)=(SELECT l_forum_slug FROM findForum) ORDER BY created DESC LIMIT $2) s UNION ALL (SELECT 0, '', '','', COALESCE((SELECT l_forum_slug FROM findForum), ''), '', NULL, NULL)"
+		}
+		if limit != nil {
+			err = tx.Select(&threads, query, slug, limit)
+		} else {
+			err = tx.Select(&threads, query, slug, nil)
 		}
 	}
 
-	query += " ORDER BY created"
-	if isDesc {
-		query += " DESC"
+	if err != nil {
+		log.Fatalln(err)
+		tx.Rollback()
 	}
 
-	if limit != nil && since != nil {
-		query += " LIMIT $3"
-	} else if limit != nil {
-		query += " LIMIT $2"
-	}
-
-	var threads models.TreadArr
-	if since != nil {
-		tx.Select(&threads, query, slug, since, limit)
-		if len(threads) == 0 {
-			tx.Select(&threads, getForumThreads, slug)
-			if len(threads) == 0 {
-				return nil, 404
-			}
+	if len(threads) == 1 {
+		if threads[0].Forum_slug != "" {
 			return nil, 200
 		}
-		return &threads, 200
+		return nil, 404
 	}
-	tx.Select(&threads, query, slug, limit)
-	if len(threads) == 0 {
-		tx.Select(&threads, getForumThreads, slug)
-		if len(threads) == 0 {
-			return nil, 404
-		}
-		return nil, 200
-	}
+	
+	threads = threads[:len(threads)-1]
 	return &threads, 200
 }
 

@@ -35,7 +35,6 @@ func GetUserProfile(nickname interface{}) (*models.User, error) {
 
 	err := tx.Get(&user, getUserProfileQuery, nickname)
 	if err != nil {
-		log.Println(err)
 		return nil, err
 	}
 

@@ -65,6 +65,7 @@ RUN echo "effective_cache_size = 1024MB" >> /etc/postgresql/$PGVER/main/postgres
 RUN echo "wal_writer_delay = 2000ms" >> /etc/postgresql/$PGVER/main/postgresql.conf
 RUN echo "commit_delay = 5000" >> /etc/postgresql/$PGVER/main/postgresql.conf
 RUN echo "checkpoint_flush_after = 2MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "fsync = 'off'" >> /etc/postgresql/$PGVER/main/postgresql.conf
 
 
 WORKDIR ${GOPATH}/src/github.com/nd-r/tech-db-forum/

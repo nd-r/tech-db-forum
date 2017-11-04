@@ -83,7 +83,7 @@ CREATE INDEX thread_forum_slug_index
   ON thread (lower(forum_slug));
 
 CREATE INDEX thread_forum_slug_created_index
-  ON thread (lower(forum_slug), created );
+  ON thread (lower(forum_slug), created);
 CREATE INDEX thread_forum_slug_created_asc_index
   ON thread (lower(forum_slug), created ASC);
 
@@ -149,25 +149,38 @@ CREATE UNIQUE INDEX vote_nickname_threadid_index
 
 
 CREATE TABLE forum_users (
-  forumId INTEGER REFERENCES forum,
-  userId  INTEGER REFERENCES users,
-  UNIQUE (forumId, userId)
+  forumId  INTEGER,
+  nickname TEXT,
+  about    TEXT,
+  email    TEXT,
+  fullname TEXT
+
 );
 
-CREATE UNIQUE INDEX forum_users_index
-  ON forum_users (forumId, userId);
+CREATE UNIQUE INDEX fu_forumid_usernick_index
+  ON forum_users (forumid, lower(nickname));
+
+CREATE INDEX fu_forumid
+  ON forum_users (forumId);
 
 CREATE FUNCTION forum_users_update()
-  RETURNS TRIGGER AS 'BEGIN INSERT INTO forum_users (forumId, userId) VALUES ((SELECT id
-                                                                               FROM forum
-                                                                               WHERE
-                                                                                 lower(slug) = lower(NEW.forum_slug)),
-                                                                              (SELECT id
-                                                                               FROM users
-                                                                               WHERE lower(nickname) =
-                                                                                     lower(NEW.user_nick)))
+  RETURNS TRIGGER AS 'BEGIN WITH userinfo AS (SELECT
+                                                about,
+                                                email,
+                                                fullname,
+                                                nickname
+                                              FROM users
+                                              WHERE lower(nickname) = lower(new.user_nick)) INSERT INTO forum_users
+VALUES ((SELECT id
+         FROM forum
+         WHERE lower(slug) = lower(new.forum_slug)), (SELECT nickname
+                                          FROM userinfo), (SELECT about
+                                                           FROM userinfo), (SELECT email
+                                                                            FROM userinfo), (SELECT fullname
+                                                                                             FROM userinfo))
 ON CONFLICT DO NOTHING;
-  RETURN NULL;
+
+RETURN NULL;
 END;' LANGUAGE plpgsql;
 
 CREATE TRIGGER on_thread_insert_user

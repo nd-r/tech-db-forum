@@ -26,4 +26,4 @@ type ThreadUpdate struct {
 }
 
 //easyjson:json
-type TreadArr []Thread
+type TreadArr []*Thread

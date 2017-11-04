@@ -498,7 +498,7 @@ func easyjsonD2b7633eDecodeGithubComNdRTechDbForumModels5(in *jlexer.Lexer, out 
 		in.Delim('[')
 		if *out == nil {
 			if !in.IsDelim(']') {
-				*out = make(TreadArr, 0, 1)
+				*out = make(TreadArr, 0, 8)
 			} else {
 				*out = TreadArr{}
 			}
@@ -506,9 +506,17 @@ func easyjsonD2b7633eDecodeGithubComNdRTechDbForumModels5(in *jlexer.Lexer, out 
 			*out = (*out)[:0]
 		}
 		for !in.IsDelim(']') {
-			var v4 Thread
-			if data := in.Raw(); in.Ok() {
-				in.AddError((v4).UnmarshalJSON(data))
+			var v4 *Thread
+			if in.IsNull() {
+				in.Skip()
+				v4 = nil
+			} else {
+				if v4 == nil {
+					v4 = new(Thread)
+				}
+				if data := in.Raw(); in.Ok() {
+					in.AddError((*v4).UnmarshalJSON(data))
+				}
 			}
 			*out = append(*out, v4)
 			in.WantComma()
@@ -528,7 +536,11 @@ func easyjsonD2b7633eEncodeGithubComNdRTechDbForumModels5(out *jwriter.Writer, i
 			if v5 > 0 {
 				out.RawByte(',')
 			}
-			out.Raw((v6).MarshalJSON())
+			if v6 == nil {
+				out.RawString("null")
+			} else {
+				out.Raw((*v6).MarshalJSON())
+			}
 		}
 		out.RawByte(']')
 	}

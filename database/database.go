@@ -13,7 +13,7 @@ var db *sqlx.DB
 
 const (
 	host     = "localhost"
-	port     = 25432
+	port     = 5432
 	user     = "docker"
 	password = "docker"
 	dbname   = "docker"
@@ -30,7 +30,7 @@ func DBPoolInit() {
 
 	db.SetMaxIdleConns(50)
 	db.SetMaxOpenConns(50)
-	db.SetConnMaxLifetime(0)
+	// db.SetConnMaxLifetime(0)
 }
 
 // InitDBSchema inits tables, indexes, etc.

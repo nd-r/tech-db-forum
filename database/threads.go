@@ -23,7 +23,7 @@ const insertPost = "WITH nextID AS (SELECT nextval('post_id_seq') as id), parent
 	"((SELECT parents FROM parent_info) || (SELECT id FROM nextID)::INTEGER))" +
 	"RETURNING id, user_nick, message, created, forum_slug,thread_id,is_edited, parent"
 
-const insert_forum_users = "INSERT INTO forum_users VALUES ((SELECT id FROM forum WHERE lower(slug) = lower($1)), (SELECT id FROM users WHERE lower(nickname) = lower($2))) ON CONFLICT DO NOTHING"
+const insert_forum_users = "WITH userinfo AS (SELECT about, email, fullname, nickname FROM users WHERE lower(nickname)= lower($2)) INSERT INTO forum_users VALUES ((SELECT id FROM forum WHERE lower(slug) = lower($1)), (SELECT nickname FROM userinfo), (SELECT about FROM userinfo), (SELECT email FROM userinfo), (SELECT fullname FROM userinfo)) ON CONFLICT DO NOTHING"
 
 const UpdateForumPosts = "UPDATE forum SET posts=posts + $2 WHERE slug=$1"
 

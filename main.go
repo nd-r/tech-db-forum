@@ -1,13 +1,13 @@
 package main
 
 import (
-	// "sync"
+	"sync"
 	_ "github.com/lib/pq"
 	"github.com/nd-r/tech-db-forum/database"
 	"github.com/nd-r/tech-db-forum/services"
 	"github.com/nd-r/tech-db-forum/models"
 	"github.com/valyala/fasthttp"
-	// "net/http"
+	"net/http"
 	"log"
 	_ "net/http/pprof"
 	_ "runtime"
@@ -29,6 +29,6 @@ func main() {
 	// var wg sync.WaitGroup
 	// wg.Add(1)
 	// go fasthttp.ListenAndServe(":8000", router.Handler)
-	// wg.Wait()
+	//  wg.Wait()
 	fasthttp.ListenAndServe(":5000", router.Handler)
 }

@@ -1,5 +1,9 @@
 package models
 
+import (
+	"time"
+)
+
 type Forum struct {
 	Id        int
 	Posts     *int   `json:"posts"`
@@ -16,7 +20,7 @@ type Thread struct {
 	Message     string  `json:"message"`
 	Forum_slug  string  `json:"forum"`
 	User_nick   string  `json:"author"`
-	Created     *string `json:"created"`
+	Created     time.Time `json:"created"`
 	Votes_count *int    `json:"votes"`
 }
 

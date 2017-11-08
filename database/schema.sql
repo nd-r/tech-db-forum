@@ -43,8 +43,14 @@ CREATE TABLE users (
 CREATE UNIQUE INDEX users_nickname_index
   ON users (lower(nickname));
 
+CREATE UNIQUE INDEX users_all_index
+  ON users (lower(nickname), id, about, email, fullname);
+
 CREATE UNIQUE INDEX users_email_index
   ON users (lower(email));
+
+CREATE UNIQUE INDEX users_nickname_email_index
+  ON users (lower(nickname), lower(email));
 
 --
 -- FORUM
@@ -52,14 +58,23 @@ CREATE UNIQUE INDEX users_email_index
 CREATE TABLE forum (
   id        SERIAL PRIMARY KEY,
   slug      TEXT    NOT NULL UNIQUE,
+  threads   INTEGER NOT NULL DEFAULT 0,
   title     TEXT    NOT NULL,
   posts     BIGINT  NOT NULL DEFAULT 0,
-  threads   INTEGER NOT NULL DEFAULT 0,
   moderator TEXT    NOT NULL
 );
 
 CREATE UNIQUE INDEX forum_slug_index
   ON forum (lower(slug));
+
+CREATE UNIQUE INDEX forum_slug_id_index
+  ON forum (lower(slug), id);
+
+CREATE UNIQUE INDEX forum_id_thread_index
+  ON forum (lower(slug), threads);
+
+CREATE UNIQUE INDEX forum_id_thread_index22
+  ON forum (lower(slug), id, threads);
 
 --
 -- THREAD
@@ -67,41 +82,42 @@ CREATE UNIQUE INDEX forum_slug_index
 CREATE TABLE thread (
   id          SERIAL PRIMARY KEY,
 
-  slug        TEXT UNIQUE DEFAULT NULL,
-  title       TEXT NOT NULL,
-  message     TEXT NOT NULL,
-  forum_slug  TEXT NOT NULL,
-  user_nick   TEXT NOT NULL,
-  created     TIMESTAMP WITH TIME ZONE,
-  votes_count INTEGER     DEFAULT 0
+  slug        TEXT                     DEFAULT NULL,
+  title       TEXT    NOT NULL,
+  message     TEXT    NOT NULL,
+  forum_id    INTEGER NOT NULL REFERENCES forum,
+  forum_slug  TEXT    NOT NULL,
+  user_id     INTEGER,
+  user_nick   TEXT    NOT NULL,
+  created     TIMESTAMP WITH TIME ZONE DEFAULT '2017-12-17 12:41:14.182000 +03:00' :: TIMESTAMPTZ,
+  votes_count INTEGER                  DEFAULT 0
 );
 
-CREATE UNIQUE INDEX threadSlugIndex
+CREATE UNIQUE INDEX slug_u_idx
   ON thread (lower(slug));
 
 CREATE INDEX thread_forum_slug_index
-  ON thread (lower(forum_slug));
+  ON thread (forum_id);
 
 CREATE INDEX thread_forum_slug_created_index
-  ON thread (lower(forum_slug), created);
-CREATE INDEX thread_forum_slug_created_asc_index
-  ON thread (lower(forum_slug), created ASC);
+  ON thread (forum_id, created);
 
 CREATE FUNCTION thread_insert()
-  RETURNS TRIGGER AS '
+  RETURNS TRIGGER AS
+$BODY$
 BEGIN
   UPDATE forum
-  SET
-    threads = forum.threads + 1
-  WHERE slug = NEW.forum_slug;
+  SET threads = forum.threads + 1
+  WHERE id = NEW.forum_id;
   RETURN NULL;
 END;
-' LANGUAGE plpgsql;
+$BODY$
+LANGUAGE plpgsql;
 
-CREATE TRIGGER on_thread_insert
-AFTER INSERT
-  ON thread
-FOR EACH ROW EXECUTE PROCEDURE thread_insert();
+-- CREATE TRIGGER on_thread_insert
+-- AFTER INSERT
+--   ON thread
+-- FOR EACH ROW EXECUTE PROCEDURE thread_insert();
 
 --
 -- POST
@@ -109,15 +125,16 @@ FOR EACH ROW EXECUTE PROCEDURE thread_insert();
 CREATE TABLE post (
   id         SERIAL PRIMARY KEY,
 
-  user_nick  TEXT       NOT NULL,
-  message    TEXT       NOT NULL,
-  created    TIMESTAMP WITH TIME ZONE,
-  forum_slug TEXT       NOT NULL,
-  thread_id  INTEGER    NOT NULL REFERENCES thread,
-  is_edited  BOOLEAN    NOT NULL DEFAULT FALSE,
-  parent     INTEGER             DEFAULT 0,
-  parents    INTEGER [] NOT NULL
+  user_nick  TEXT      NOT NULL,
+  message    TEXT      NOT NULL,
+  created    TIMESTAMP WITH TIME ZONE   DEFAULT '2017-12-17 12:41:14.182000 +03:00' :: TIMESTAMPTZ,
+  forum_slug TEXT      NOT NULL,
+  thread_id  INTEGER   NOT NULL,
+  is_edited  BOOLEAN   NOT NULL         DEFAULT FALSE,
+  parent     INTEGER                    DEFAULT 0,
+  parents    BIGINT [] NOT NULL
 );
+
 
 CREATE UNIQUE INDEX posts_thread_id_index
   ON post (thread_id, id);
@@ -126,6 +143,9 @@ CREATE UNIQUE INDEX posts_thread_id_index
 CREATE INDEX posts_parents_index
   ON post
   USING GIN (parents);
+
+CREATE UNIQUE INDEX posts_thread_id_parents
+  ON post (id, thread_id, parents);
 
 CREATE UNIQUE INDEX posts_thread_id_parents_index
   ON post (thread_id, parents);
@@ -167,28 +187,25 @@ CREATE FUNCTION forum_users_update()
   RETURNS TRIGGER AS 'BEGIN WITH userinfo AS (SELECT
                                                 about,
                                                 email,
-                                                fullname,
-                                                nickname
+                                                fullname
                                               FROM users
-                                              WHERE lower(nickname) = lower(new.user_nick)) INSERT INTO forum_users
-VALUES ((SELECT id
-         FROM forum
-         WHERE lower(slug) = lower(new.forum_slug)), (SELECT nickname
-                                          FROM userinfo), (SELECT about
-                                                           FROM userinfo), (SELECT email
-                                                                            FROM userinfo), (SELECT fullname
-                                                                                             FROM userinfo))
+                                              WHERE id = NEW.user_id) INSERT INTO forum_users
+VALUES (new.forum_id, new.user_nick, (SELECT about
+                                      FROM userinfo), (SELECT email
+                                                       FROM userinfo), (SELECT fullname
+                                                                        FROM userinfo))
 ON CONFLICT DO NOTHING;
-
-RETURN NULL;
+  RETURN NULL;
 END;' LANGUAGE plpgsql;
 
-CREATE TRIGGER on_thread_insert_user
-AFTER INSERT ON thread
-FOR EACH ROW EXECUTE PROCEDURE forum_users_update();
+-- CREATE TRIGGER on_thread_insert_user
+-- AFTER INSERT ON thread
+-- FOR EACH ROW EXECUTE PROCEDURE forum_users_update();
 
 -- CREATE TRIGGER on_post_insert_user
 -- AFTER INSERT ON post
 -- FOR EACH ROW EXECUTE PROCEDURE forum_users_update();
+
+SELECT 5::TEXT::INTEGER
 
 

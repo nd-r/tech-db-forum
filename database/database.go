@@ -1,45 +1,77 @@
 package database
 
 import (
-	"fmt"
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx"
 	"io/ioutil"
 	"log"
 )
 
-const pqErrViolatesContraint = "23505"
+var db *pgx.ConnPool
 
-var db *sqlx.DB
+const schema = "./database/schema.sql"
 
-const (
-	host     = "localhost"
-	port     = 5432
-	user     = "docker"
-	password = "docker"
-	dbname   = "docker"
-
-	schema   = "./database/schema.sql"
-)
+var pgConfig = pgx.ConnConfig{
+	Host:"localhost",
+	Port: 5432,
+	User:"docker",
+	Password: "docker",
+	Database: "docker",
+}
 
 // DBPoolInit initializes sqlx db pool
 func DBPoolInit() {
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname)
+	var err error
+	db, err = pgx.NewConnPool(pgx.ConnPoolConfig{
+		ConnConfig: pgConfig,
+		MaxConnections: 50,
+	})
 
-	db = sqlx.MustConnect("postgres", psqlInfo)
+	log.Println(err)
 
-	db.SetMaxIdleConns(50)
-	db.SetMaxOpenConns(50)
-	// db.SetConnMaxLifetime(0)
+	if err != nil{
+		log.Fatalln(err)
+	}
 }
 
 // InitDBSchema inits tables, indexes, etc.
 func InitDBSchema() {
+	tx, err := db.Begin()
+	if err != nil{
+		log.Fatalln(err)
+	}
+
 	buf, err := ioutil.ReadFile(schema)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	schema := string(buf)
-	db.MustExec(schema)
+
+	_, err = tx.Exec(schema)
+	if err != nil{
+		tx.Rollback()		
+		log.Fatalln(err)
+	}
+
+	tx.Commit()
+
+	_, err = db.Prepare("InsertIntoThread", createThreadQuery)	
+	_, err = db.Prepare("getThreadBySlug", getThreadBySlug)
+	_, err = db.Prepare("putVoteByThrID", putVoteByThrID)
+	_, err = db.Prepare("putVoteByThrSLUG", putVoteByThrSLUG)
+	_, err = db.Prepare("getThreadIdBySlug", getThreadIdBySlug)
+	_, err = db.Prepare("getThreadIdById", getThreadIdById)
+	_, err = db.Prepare("insertPost", insertPost)
+	if err != nil{
+		log.Fatalln(err, 1)
+	}
+	_, err = db.Prepare("insertForumUsers", insertForumUsers)
+	_, err = db.Prepare("generateNextIDs", generateNextIDs)
+	_, err = db.Prepare("claimInfoWithoutParent", claimInfoWithoutParent)
+	_, err = db.Prepare("claimInfoWithParent", claimInfoWithParent)
+	_, err = db.Prepare("getUserProfileQuery", getUserProfileQuery)
+	_, err = db.Prepare("selectParentAndParents", selectParentAndParents)
+	_, err = db.Prepare("getForumIdBySlug", getForumIdBySlug)
+
 }
+

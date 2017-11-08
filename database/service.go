@@ -2,16 +2,20 @@ package database
 
 import (
 	"github.com/nd-r/tech-db-forum/models"
+	"log"
 )
 
 const statusQuery = "SELECT (SELECT count(*) FROM forum) as forum, (SELECT count(*) FROM post) as post, (SELECT count(*) FROM users) as user, (SELECT count(*) FROM thread) as thread"
 
 func GetDBStatus() *models.Status {
-	tx := db.MustBegin()
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatalln(err)
+	}
 	defer tx.Commit()
 
 	status := models.Status{}
-	tx.Get(&status, statusQuery)
+	tx.QueryRow(statusQuery).Scan(&status.Forum, &status.Post, &status.User, &status.Thread)
 
 	return &status
 }
@@ -19,7 +23,10 @@ func GetDBStatus() *models.Status {
 const deleteDBQuery = "TRUNCATE forum_users, vote, post, thread, forum, users RESTART IDENTITY CASCADE"
 
 func DeleteDB(){
-	tx := db.MustBegin()
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatalln(err)
+	}
 	defer tx.Commit()
 
 	tx.Exec(deleteDBQuery)

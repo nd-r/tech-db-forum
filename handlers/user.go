@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/nd-r/tech-db-forum/database"
+	"github.com/nd-r/tech-db-forum/dberrors"
 	"github.com/nd-r/tech-db-forum/models"
 	"github.com/valyala/fasthttp"
 )
@@ -9,63 +10,72 @@ import (
 // CreateUser - создание нового пользователя
 // POST /user/{nickname}/create
 func CreateUser(ctx *fasthttp.RequestCtx) {
-	ctx.SetContentType("application/json")
-
 	var user models.User
 	user.UnmarshalJSON(ctx.PostBody())
+
 	nickname := ctx.UserValue("nickname")
 
-	userArr, _ := database.CreateUser(&user, nickname)
-	if userArr != nil{
+	existingUsers, error := database.CreateUser(&user, nickname)
+
+	var resp []byte
+
+	switch error {
+	case nil:
+		ctx.SetStatusCode(201)
+		user.Nickname = ctx.UserValue("nickname").(string)
+		resp, _ = user.MarshalJSON()
+	case dberrors.ErrUserExists:
 		ctx.SetStatusCode(409)
-		resp, _ := userArr.MarshalJSON()
-		ctx.Write(resp)
-		return
+		resp, _ = existingUsers.MarshalJSON()
 	}
 
-	user.Nickname = nickname.(string)
-	ctx.SetStatusCode(201)
-	resp, _ := user.MarshalJSON()
+	ctx.SetContentType("application/json")
 	ctx.Write(resp)
 }
 
 // GetUserProfile - получение информации о пользователе
 // GET /user/{nickname}/profile
 func GetUserProfile(ctx *fasthttp.RequestCtx) {
-	ctx.SetContentType("application/json")
 	nickname := ctx.UserValue("nickname")
 
 	user, err := database.GetUserProfile(nickname)
 
-	if err != nil {
+	var resp []byte
+
+	switch err {
+	case nil:
+		resp, _ = user.MarshalJSON()
+	case dberrors.ErrUserNotFound:
 		ctx.SetStatusCode(404)
-		ctx.Write(models.ErrorMsg)
-		return
+		resp = models.ErrorMsg
 	}
 
-	var resp []byte
-	resp, err = user.MarshalJSON()
+	ctx.SetContentType("application/json")
 	ctx.Write(resp)
 }
 
 // UpdateUserProfile - изменение информации о пользователе
 // POST /user/{nickname}/profile
 func UpdateUserProfile(ctx *fasthttp.RequestCtx) {
-	ctx.SetContentType("application/json")
-
 	user := models.UserUpd{}
 	user.UnmarshalJSON(ctx.PostBody())
-	nickname := ctx.UserValue("nickname").(string)
-	user.Nickname = &nickname
 
-	userUpdated, statusCode := database.UpdateUserProfile(&user)
-	ctx.SetStatusCode(statusCode)
+	nickname := ctx.UserValue("nickname")
 
-	switch statusCode {
-	case 200:
-		resp, _ := userUpdated.MarshalJSON()
-		ctx.Write(resp)
-	default:
-		ctx.Write(models.ErrorMsg)
+	userUpdated, error := database.UpdateUserProfile(&user, &nickname)
+	var resp []byte
+
+	switch error {
+	case nil:
+		resp, _ = userUpdated.MarshalJSON()
+	case dberrors.ErrUserConflict:
+		ctx.SetStatusCode(409)
+		resp = models.ErrorMsg
+	case dberrors.ErrUserNotFound:
+		ctx.SetStatusCode(404)
+		resp = models.ErrorMsg
 	}
+
+	ctx.SetContentType("application/json")
+	ctx.Write(resp)
 }

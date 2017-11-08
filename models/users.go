@@ -17,4 +17,4 @@ type UserUpd struct {
 }
 
 //easyjson:json
-type UsersArr []User
+type UsersArr []*User

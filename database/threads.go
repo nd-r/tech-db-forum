@@ -1,190 +1,227 @@
 package database
 
 import (
-	"github.com/lib/pq"
+	"context"
+	"github.com/jackc/pgx"
+	"github.com/nd-r/tech-db-forum/dberrors"
+	"time"
+	// 	"github.com/lib/pq"
 	"github.com/nd-r/tech-db-forum/models"
 	"log"
 	"strconv"
 	"strings"
-	"time"
+	// 	"time"
 )
 
-const getThreadIdBySlug = "SELECT id FROM thread WHERE lower(slug)=lower($1)"
-const getThreadIdById = "SELECT id FROM thread WHERE id=$1"
+const getThreadIdBySlug = "SELECT id, forum_slug FROM thread WHERE lower(slug)=lower($1)"
+const getThreadIdById = "SELECT id, forum_slug FROM thread WHERE id=$1"
 
-const insertPost = "WITH nextID AS (SELECT nextval('post_id_seq') as id), parent_info AS(SELECT thread_id, parents FROM post WHERE id=$5) INSERT INTO post (id, user_nick, message, created, forum_slug, thread_id, parent, parents)" +
-	"VALUES((SELECT id FROM nextID)," +
-	"(SELECT nickname FROM users WHERE lower(nickname) = lower($1))," +
-	"$2," +
-	"$3," +
-	"(SELECT forum_slug FROM thread WHERE id=$4), " +
-	"(CASE WHEN $5=0 THEN $4 ELSE CASE WHEN $4=(SELECT thread_id FROM parent_info) THEN $4 ELSE NULL END END), " +
-	"$5, " +
-	"((SELECT parents FROM parent_info) || (SELECT id FROM nextID)::INTEGER))" +
-	"RETURNING id, user_nick, message, created, forum_slug,thread_id,is_edited, parent"
+const insertPost = "INSERT INTO post (id, user_nick, message, forum_slug, thread_id, parent, parents, created) VALUES ($1 :: INTEGER, $2, $3, $4, (CASE WHEN $6 != 0 THEN CASE WHEN (SELECT thread_id FROM post WHERE id = $6) = $5 THEN $5 ELSE NULL END ELSE $5 END), $6, (SELECT parents FROM post WHERE id = $6) || $1 :: BIGINT, $7)"
 
-const insert_forum_users = "WITH userinfo AS (SELECT about, email, fullname, nickname FROM users WHERE lower(nickname)= lower($2)) INSERT INTO forum_users VALUES ((SELECT id FROM forum WHERE lower(slug) = lower($1)), (SELECT nickname FROM userinfo), (SELECT about FROM userinfo), (SELECT email FROM userinfo), (SELECT fullname FROM userinfo)) ON CONFLICT DO NOTHING"
+// const insertPost = "INSERT INTO post (id, user_nick, message, forum_slug, thread_id, parent, parents, created) VALUES ($1::INTEGER, $2, $3, $4, $5, $6, $7::BIGINT[] || $1::BIGINT, $8)"
 
-const UpdateForumPosts = "UPDATE forum SET posts=posts + $2 WHERE slug=$1"
+const insertForumUsers = "INSERT INTO forum_users VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING"
 
-func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostArr, int) {
-	tx := db.MustBegin()
-	defer tx.Rollback()
-	currTime := time.Now().Format("2006-01-02T15:04:05.000000Z")
+const UpdateForumPosts = "UPDATE forum SET posts=posts + $2 WHERE lower(slug)=lower($1)"
 
-	ID, err := strconv.Atoi(slugOrID.(string))
+const generateNextIDs = "SELECT array_agg(nextval('post_id_seq')::BIGINT) FROM generate_series(1,$1);"
+
+const claimInfoWithParent = "SELECT users.nickname, users.about, users.email, users.fullname, post.parents, post.thread_id FROM users, post WHERE lower(users.nickname) = lower($1) AND post.id = $2"
+const claimInfoWithoutParent = "SELECT users.nickname, users.about, users.email, users.fullname, NULL, NULL FROM users WHERE lower(users.nickname) = lower($1)"
+const selectParentAndParents = "SELECT thread_id, parents FROM post WHERE id = $1"
+
+var zero = 0
+const getForumIdBySlug = "SELECT id FROM forum WHERE lower(slug) = lower($1)"
+
+func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostArr, error) {
+	tx, err := db.Begin()
 	if err != nil {
-		err = tx.Get(&ID, getThreadIdBySlug, slugOrID)
-		if err != nil {
-			return nil, 404
+		log.Fatalln(err)
+	}
+	defer tx.Commit()
+
+	var forumID int
+	var forumSlug string
+
+	created := time.Now()
+
+	//Claiming thread ID
+	threadID, err := strconv.Atoi(slugOrID.(string))
+	if err != nil {
+		if err = tx.QueryRow("getThreadIdBySlug", slugOrID).Scan(&threadID, &forumSlug); err != nil {
+			return nil, dberrors.ErrThreadNotFound
 		}
 	} else {
-		err = tx.Get(&ID, getThreadIdById, ID)
-		if err != nil {
-			return nil, 404
+		if err = tx.QueryRow("getThreadIdById", threadID).Scan(&threadID, &forumSlug); err != nil {
+			return nil, dberrors.ErrThreadNotFound
 		}
 	}
 
 	if len(*postsArr) == 0 {
-		return nil, 201
+		return nil, nil
 	}
 
-	var post models.Post
-	postsAdded := models.PostArr{}
-	prep, err := tx.Preparex(insertPost)
-	if err != nil {
+	//claiming forum id
+	if err = tx.QueryRow("getForumIdBySlug", &forumSlug).Scan(&forumID); err != nil {
 		log.Fatalln(err)
 	}
 
-	for _, val := range *postsArr {
-		if val.Parent == nil {
-			a := 0
-			val.Parent = &a
-		}
-		err = prep.Get(&post, val.User_nick, val.Message, currTime, ID, val.Parent)
-		if err != nil {
-			log.Println(err, ID)
-			if err.(*pq.Error).Column == "user_nick" {
-				return nil, 404
-			}
-			return nil, 409
-		}
-		postsAdded = append(postsAdded, post)
-	}
-	rows, err := tx.Queryx(UpdateForumPosts, post.Forum_slug, len(postsAdded))
-	if err != nil {
+	//claiming ids for further posts
+	ids := make([]int64, 0, len(*postsArr))
+	if err = tx.QueryRow("generateNextIDs", len(*postsArr)).Scan(&ids); err != nil {
 		log.Fatalln(err)
 	}
-	if rows != nil {
-		rows.Close()
+
+	user := models.User{}
+	if err = tx.QueryRow("getUserProfileQuery", (*postsArr)[0].User_nick).
+		Scan(&user.About, &user.Email, &user.Fullname, &user.Nickname); err != nil {
+		return nil, dberrors.ErrUserNotFound
 	}
 
-	prep, err = tx.Preparex(insert_forum_users)
-	// if err != nil {
-	// 	log.Fatalln(err)
-	// }
-	for _, val := range postsAdded{
-		_, err = prep.Exec(val.Forum_slug, val.User_nick);
-		if err != nil {
-			log.Println(err)
+	tx.Exec("insertForumUsers", forumID, user.Nickname, user.About, user.Email, user.Fullname)
+
+	batchPostInserter := tx.BeginBatch()
+	// batchForumUsersInserter := tx.BeginBatch()
+	for index, post := range *postsArr {
+		if post.Parent == nil {
+			post.Parent = &zero
 		}
+
+		// var parentThreadID int64
+		// var parents []int64
+
+		if post.Parent != nil && *post.Parent != 0 {
+			// if err = tx.QueryRow("selectParentAndParents", post.Parent).Scan(&parentThreadID, &parents); err != nil {
+			// 	return nil, dberrors.ErrPostsConflict
+			// }
+
+			// if parentThreadID != 0 && parentThreadID != int64(threadID) {
+			// 	return nil, dberrors.ErrPostsConflict
+			// }
+		} else {
+			post.Parent = &zero
+		}
+
+		pID := int(ids[index])
+
+		post.Id = &pID
+		post.Thread_id = &threadID
+		post.Forum_slug = forumSlug
+		post.Created = &created
+
+		batchPostInserter.Queue("insertPost", []interface{}{ids[index], &user.Nickname, &post.Message, &forumSlug, &threadID, post.Parent, created}, nil, nil)
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err = batchPostInserter.Send(context.Background(), nil); err != nil {
 		log.Fatalln(err)
 	}
-	prep.Close()
-	return &postsAdded, 201
+
+	res, err := batchPostInserter.ExecResults()
+	if int(res.RowsAffected()) != 1 {
+		return nil, dberrors.ErrPostsConflict
+	}
+	batchPostInserter.Close()
+
+	tx.Exec(UpdateForumPosts, forumSlug, len(*postsArr))
+	return postsArr, nil
 }
 
-const putVoteByThrID = "WITH sub AS (INSERT INTO vote (user_id, thread_id, voice) VALUES ((SELECT id FROM users WHERE lower(nickname) = lower($1)), $2, $3) ON CONFLICT ON CONSTRAINT unique_user_and_thread DO UPDATE SET prev_voice = vote.voice ,voice = EXCLUDED.voice RETURNING prev_voice, voice, thread_id) UPDATE thread SET votes_count = votes_count - (SELECT prev_voice-voice FROM sub) WHERE id = $2 RETURNING *;"
-const putVoteByThrSLUG = "WITH sub AS (INSERT INTO vote (user_id, thread_id, voice) VALUES ((SELECT id FROM users WHERE lower(nickname) = lower($1)), (SELECT id FROM thread WHERE lower(slug) = lower($2)), $3) ON CONFLICT ON CONSTRAINT unique_user_and_thread DO UPDATE SET prev_voice = vote.voice ,voice = EXCLUDED.voice RETURNING prev_voice, voice, thread_id) UPDATE thread SET votes_count = votes_count - (SELECT prev_voice-voice FROM sub) WHERE id = (SELECT thread_id FROM sub) RETURNING *;"
+const putVoteByThrID = "WITH sub AS (INSERT INTO vote (user_id, thread_id, voice) VALUES ((SELECT id FROM users WHERE lower(nickname) = lower($1)), $2, $3) ON CONFLICT ON CONSTRAINT unique_user_and_thread DO UPDATE SET prev_voice = vote.voice ,voice = EXCLUDED.voice RETURNING prev_voice, voice, thread_id) UPDATE thread SET votes_count = votes_count - (SELECT prev_voice-voice FROM sub) WHERE id = $2 RETURNING id, slug, title, message, forum_slug, user_nick, created, votes_count;"
+const putVoteByThrSLUG = "WITH sub AS (INSERT INTO vote (user_id, thread_id, voice) VALUES ((SELECT id FROM users WHERE lower(nickname) = lower($1)), (SELECT id FROM thread WHERE lower(slug) = lower($2)), $3) ON CONFLICT ON CONSTRAINT unique_user_and_thread DO UPDATE SET prev_voice = vote.voice ,voice = EXCLUDED.voice RETURNING prev_voice, voice, thread_id) UPDATE thread SET votes_count = votes_count - (SELECT prev_voice-voice FROM sub) WHERE lower(slug) = lower($2) RETURNING id, slug, title, message, forum_slug, user_nick, created, votes_count;"
 
-func PutVote(slugOrID interface{}, vote *models.Vote) (*models.Thread, error){
-	tx := db.MustBegin()
+func PutVote(slugOrID interface{}, vote *models.Vote) (*models.Thread, error) {
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatalln(err)
+	}
 	defer tx.Commit()
 
-	_, err := strconv.Atoi(slugOrID.(string));
+	_, err = strconv.Atoi(slugOrID.(string))
 
-	thread := models.Thread{}	
+	thread := models.Thread{}
 
-	if  err != nil {
-		err = tx.Get(&thread, putVoteByThrSLUG, vote.Nickname, slugOrID, vote.Voice)
+	if err != nil {
+		err = tx.QueryRow("putVoteByThrSLUG", vote.Nickname, slugOrID, vote.Voice).Scan(&thread.Id, &thread.Slug, &thread.Title, &thread.Message, &thread.Forum_slug, &thread.User_nick, &thread.Created, &thread.Votes_count)
 	} else {
-		err = tx.Get(&thread, putVoteByThrID, vote.Nickname, slugOrID, vote.Voice)
+		err = tx.QueryRow("putVoteByThrID", vote.Nickname, slugOrID, vote.Voice).Scan(&thread.Id, &thread.Slug, &thread.Title, &thread.Message, &thread.Forum_slug, &thread.User_nick, &thread.Created, &thread.Votes_count)
 	}
 
 	if err != nil {
 		tx.Rollback()
 		return nil, err
 	}
-	
+
 	return &thread, nil
 }
 
-const getThreadById = "SELECT * FROM thread WHERE id=$1"
-const getThreadBySlug = "SELECT * FROM thread WHERE lower(slug)=lower($1)"
+const getThreadById = "SELECT id, slug, title, message, forum_slug, user_nick, created, votes_count FROM thread WHERE id=$1"
+const getThreadBySlug = "SELECT id, slug, title, message, forum_slug, user_nick, created, votes_count FROM thread WHERE lower(slug)=lower($1)"
 
 func GetThread(slugOrID interface{}) (*models.Thread, error) {
-	tx := db.MustBegin()
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatalln(err)
+	}
 	defer tx.Commit()
 
 	thread := models.Thread{}
 
-	_, err := strconv.Atoi(slugOrID.(string))
+	_, err = strconv.Atoi(slugOrID.(string))
 
 	if err != nil {
-		err = tx.Get(&thread, getThreadBySlug, slugOrID)
+		err = tx.QueryRow(getThreadBySlug, slugOrID).Scan(&thread.Id, &thread.Slug, &thread.Title, &thread.Message, &thread.Forum_slug, &thread.User_nick, &thread.Created, &thread.Votes_count)
 		return &thread, err
 	}
 
-	err = tx.Get(&thread, getThreadById, slugOrID)
+	err = tx.QueryRow(getThreadById, slugOrID).Scan(&thread.Id, &thread.Slug, &thread.Title, &thread.Message, &thread.Forum_slug, &thread.User_nick, &thread.Created, &thread.Votes_count)
 	return &thread, err
 }
 
 const checkThreadId = "SELECT id FROM thread WHERE id=$1"
 
 const getPostsFlat = "SELECT id, user_nick, message, created, forum_slug,thread_id,is_edited, parent" +
-	" FROM post WHERE thread_id=$1 AND id >COALESCE($3::INTEGER,0) " +
+	" FROM post WHERE thread_id=$1 AND id >COALESCE($3::TEXT::INTEGER,0) " +
 	" ORDER BY id $4" +
-	" LIMIT $2"
+	" LIMIT $2::TEXT::BIGINT"
 
 const getPostsTree = "SELECT id, user_nick, message, created, forum_slug, thread_id, is_edited, parent FROM post" +
-	" WHERE thread_id = $1  AND parents > COALESCE((SELECT parents FROM post WHERE id = $3::INTEGER), '{0}')" +
+	" WHERE thread_id = $1  AND parents > COALESCE((SELECT parents FROM post WHERE id = $3::TEXT::INTEGER), '{0}')" +
 	" ORDER BY parents $4" +
-	" LIMIT $2;"
+	" LIMIT $2::TEXT::BIGINT;"
 
 const getPostsParentTree = "WITH sub AS (" +
 	"SELECT parents FROM post" +
-	" WHERE parent=0 AND thread_id = $1 AND parents > COALESCE((SELECT parents FROM post WHERE id = $3::INTEGER), '{0}')" +
+	" WHERE parent=0 AND thread_id = $1 AND parents > COALESCE((SELECT parents FROM post WHERE id = $3::TEXT::INTEGER), '{0}')" +
 	" ORDER BY post.parents $4" +
-	" LIMIT $2)" +
-	" SELECT p.id, p.user_nick, p.forum_slug, p.created, p.message, p.thread_id, p.parent, p.is_edited" +
+	" LIMIT $2::TEXT::INTEGER)" +
+	" SELECT p.id, p.user_nick, p.message, p.created, p.forum_slug, p.thread_id, p.is_edited, p.parent" +
 	" FROM post p" +
 	"  JOIN sub ON sub.parents <@ p.parents" +
 	" ORDER BY p.parents $4;"
 
 func GetThreadPosts(slugOrID *string, limit []byte, since []byte, sort []byte, desc []byte) (*models.PostArr, int) {
-	tx := db.MustBegin()
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatalln(err)
+	}
 	defer tx.Commit()
 
 	var ID int
-	var err error
-	if ID, err = strconv.Atoi(*slugOrID); err != nil {
-		err = tx.Get(&ID, getThreadIdBySlug, slugOrID)
-		if err != nil {
+	var fs string
+	if _, err = strconv.Atoi(*slugOrID); err != nil {
+		if err = tx.QueryRow(getThreadIdBySlug, slugOrID).Scan(&ID, &fs); err != nil {
+
 			return nil, 404
 		}
 	} else {
-		err = tx.Get(&ID, checkThreadId, ID)
-		if err != nil {
+		if err = tx.QueryRow(checkThreadId, slugOrID).Scan(&ID); err != nil {
+			log.Println(err)
 			return nil, 404
 		}
 	}
 
 	var query string
-	
+
 	switch string(sort) {
 	case "tree":
 		query = getPostsTree
@@ -203,19 +240,32 @@ func GetThreadPosts(slugOrID *string, limit []byte, since []byte, sort []byte, d
 		query = strings.Replace(query, "$4", " ASC", -1)
 	}
 	var posts models.PostArr
-
+	var rows *pgx.Rows
 	if limit != nil {
 		if since != nil {
-			err = tx.Select(&posts, query, ID, limit, since)
+			rows, err = tx.Query(query, ID, limit, since)
 		} else {
-			err = tx.Select(&posts, query, ID, limit, nil)
+			rows, err = tx.Query(query, ID, limit, nil)
 		}
 	} else {
 		if since != nil {
-			err = tx.Select(&posts, query, ID, nil, since)
+			rows, err = tx.Query(query, ID, nil, since)
 		} else {
-			err = tx.Select(&posts, query, ID, nil, nil)
+			rows, err = tx.Query(query, ID, nil, nil)
 		}
+	}
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	for rows.Next() {
+		post := models.Post{}
+
+		if err = rows.Scan(&post.Id, &post.User_nick, &post.Message, &post.Created, &post.Forum_slug, &post.Thread_id, &post.Is_edited, &post.Parent); err != nil {
+			log.Fatalln(err)
+		}
+		posts = append(posts, &post)
 	}
 
 	if err != nil {
@@ -225,16 +275,19 @@ func GetThreadPosts(slugOrID *string, limit []byte, since []byte, sort []byte, d
 	return &posts, 200
 }
 
-const threadUpdateQuery = "UPDATE thread SET message = coalesce($1, message), title = coalesce($2,title) WHERE id = $3 RETURNING *"
+const threadUpdateQuery = "UPDATE thread SET message = coalesce($1, message), title = coalesce($2,title) WHERE id = $3 RETURNING  id, slug, title, message, forum_slug, user_nick, created, votes_count "
 
 func UpdateThreadDetails(slugOrID *string, thrUpdate *models.ThreadUpdate) (*models.Thread, int) {
-	tx := db.MustBegin()
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatalln(err)
+	}
 	defer tx.Commit()
 
 	var ID int
-	var err error
+	var fs string
 	if ID, err = strconv.Atoi(*slugOrID); err != nil {
-		err = tx.Get(&ID, getThreadIdBySlug, slugOrID)
+		err = tx.QueryRow(getThreadIdBySlug, slugOrID).Scan(&ID, &fs)
 		if err != nil {
 			return nil, 404
 		}
@@ -242,7 +295,7 @@ func UpdateThreadDetails(slugOrID *string, thrUpdate *models.ThreadUpdate) (*mod
 
 	var thread models.Thread
 
-	err = tx.Get(&thread, threadUpdateQuery, thrUpdate.Message, thrUpdate.Title, ID)
+	err = tx.QueryRow(threadUpdateQuery, thrUpdate.Message, thrUpdate.Title, ID).Scan(&thread.Id, &thread.Slug, &thread.Title, &thread.Message, &thread.Forum_slug, &thread.User_nick, &thread.Created, &thread.Votes_count)
 
 	if err != nil {
 		return nil, 404

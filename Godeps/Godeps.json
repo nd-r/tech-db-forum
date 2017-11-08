@@ -12,6 +12,36 @@
 			"Rev": "ade4e2031af3aed7fffd241084aad80a58faf421"
 		},
 		{
+			"ImportPath": "github.com/jackc/pgx",
+			"Comment": "v3.0.1-65-gf6d3753",
+			"Rev": "f6d37536c424300757bcba3933a67b5cb10a77be"
+		},
+		{
+			"ImportPath": "github.com/jackc/pgx/chunkreader",
+			"Comment": "v3.0.1-65-gf6d3753",
+			"Rev": "f6d37536c424300757bcba3933a67b5cb10a77be"
+		},
+		{
+			"ImportPath": "github.com/jackc/pgx/internal/sanitize",
+			"Comment": "v3.0.1-65-gf6d3753",
+			"Rev": "f6d37536c424300757bcba3933a67b5cb10a77be"
+		},
+		{
+			"ImportPath": "github.com/jackc/pgx/pgio",
+			"Comment": "v3.0.1-65-gf6d3753",
+			"Rev": "f6d37536c424300757bcba3933a67b5cb10a77be"
+		},
+		{
+			"ImportPath": "github.com/jackc/pgx/pgproto3",
+			"Comment": "v3.0.1-65-gf6d3753",
+			"Rev": "f6d37536c424300757bcba3933a67b5cb10a77be"
+		},
+		{
+			"ImportPath": "github.com/jackc/pgx/pgtype",
+			"Comment": "v3.0.1-65-gf6d3753",
+			"Rev": "f6d37536c424300757bcba3933a67b5cb10a77be"
+		},
+		{
 			"ImportPath": "github.com/jmoiron/sqlx",
 			"Comment": "sqlx-v1.1-123-gd9bd385",
 			"Rev": "d9bd385d68c068f1fabb5057e3dedcbcbb039d0f"
@@ -70,6 +100,11 @@
 		{
 			"ImportPath": "github.com/mailru/easyjson/opt",
 			"Rev": "2a92e673c9a6302dd05c3a691ae1f24aef46457d"
+		},
+		{
+			"ImportPath": "github.com/pkg/errors",
+			"Comment": "v0.8.0-7-gf15c970",
+			"Rev": "f15c970de5b76fac0b59abb32d62c17cc7bed265"
 		},
 		{
 			"ImportPath": "github.com/valyala/bytebufferpool",

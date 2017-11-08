@@ -7,6 +7,7 @@ import (
 	easyjson "github.com/mailru/easyjson"
 	jlexer "github.com/mailru/easyjson/jlexer"
 	jwriter "github.com/mailru/easyjson/jwriter"
+	time "time"
 )
 
 // suppress unused package warning
@@ -192,7 +193,7 @@ func easyjsonD2b7633eDecodeGithubComNdRTechDbForumModels2(in *jlexer.Lexer, out 
 		in.Delim('[')
 		if *out == nil {
 			if !in.IsDelim(']') {
-				*out = make(UsersArr, 0, 1)
+				*out = make(UsersArr, 0, 8)
 			} else {
 				*out = UsersArr{}
 			}
@@ -200,9 +201,17 @@ func easyjsonD2b7633eDecodeGithubComNdRTechDbForumModels2(in *jlexer.Lexer, out 
 			*out = (*out)[:0]
 		}
 		for !in.IsDelim(']') {
-			var v1 User
-			if data := in.Raw(); in.Ok() {
-				in.AddError((v1).UnmarshalJSON(data))
+			var v1 *User
+			if in.IsNull() {
+				in.Skip()
+				v1 = nil
+			} else {
+				if v1 == nil {
+					v1 = new(User)
+				}
+				if data := in.Raw(); in.Ok() {
+					in.AddError((*v1).UnmarshalJSON(data))
+				}
 			}
 			*out = append(*out, v1)
 			in.WantComma()
@@ -222,7 +231,11 @@ func easyjsonD2b7633eEncodeGithubComNdRTechDbForumModels2(out *jwriter.Writer, i
 			if v2 > 0 {
 				out.RawByte(',')
 			}
-			out.Raw((v3).MarshalJSON())
+			if v3 == nil {
+				out.RawString("null")
+			} else {
+				out.Raw((*v3).MarshalJSON())
+			}
 		}
 		out.RawByte(']')
 	}
@@ -716,14 +729,8 @@ func easyjsonD2b7633eDecodeGithubComNdRTechDbForumModels7(in *jlexer.Lexer, out 
 		case "author":
 			out.User_nick = string(in.String())
 		case "created":
-			if in.IsNull() {
-				in.Skip()
-				out.Created = nil
-			} else {
-				if out.Created == nil {
-					out.Created = new(string)
-				}
-				*out.Created = string(in.String())
+			if data := in.Raw(); in.Ok() {
+				in.AddError((out.Created).UnmarshalJSON(data))
 			}
 		case "votes":
 			if in.IsNull() {
@@ -798,11 +805,7 @@ func easyjsonD2b7633eEncodeGithubComNdRTechDbForumModels7(out *jwriter.Writer, i
 	}
 	first = false
 	out.RawString("\"created\":")
-	if in.Created == nil {
-		out.RawString("null")
-	} else {
-		out.String(string(*in.Created))
-	}
+	out.Raw((in.Created).MarshalJSON())
 	if !first {
 		out.RawByte(',')
 	}
@@ -1173,7 +1176,7 @@ func easyjsonD2b7633eDecodeGithubComNdRTechDbForumModels11(in *jlexer.Lexer, out
 		in.Delim('[')
 		if *out == nil {
 			if !in.IsDelim(']') {
-				*out = make(PostArr, 0, 1)
+				*out = make(PostArr, 0, 8)
 			} else {
 				*out = PostArr{}
 			}
@@ -1181,9 +1184,17 @@ func easyjsonD2b7633eDecodeGithubComNdRTechDbForumModels11(in *jlexer.Lexer, out
 			*out = (*out)[:0]
 		}
 		for !in.IsDelim(']') {
-			var v7 Post
-			if data := in.Raw(); in.Ok() {
-				in.AddError((v7).UnmarshalJSON(data))
+			var v7 *Post
+			if in.IsNull() {
+				in.Skip()
+				v7 = nil
+			} else {
+				if v7 == nil {
+					v7 = new(Post)
+				}
+				if data := in.Raw(); in.Ok() {
+					in.AddError((*v7).UnmarshalJSON(data))
+				}
 			}
 			*out = append(*out, v7)
 			in.WantComma()
@@ -1203,7 +1214,11 @@ func easyjsonD2b7633eEncodeGithubComNdRTechDbForumModels11(out *jwriter.Writer, 
 			if v8 > 0 {
 				out.RawByte(',')
 			}
-			out.Raw((v9).MarshalJSON())
+			if v9 == nil {
+				out.RawString("null")
+			} else {
+				out.Raw((*v9).MarshalJSON())
+			}
 		}
 		out.RawByte(']')
 	}
@@ -1271,9 +1286,11 @@ func easyjsonD2b7633eDecodeGithubComNdRTechDbForumModels12(in *jlexer.Lexer, out
 				out.Created = nil
 			} else {
 				if out.Created == nil {
-					out.Created = new(string)
+					out.Created = new(time.Time)
 				}
-				*out.Created = string(in.String())
+				if data := in.Raw(); in.Ok() {
+					in.AddError((*out.Created).UnmarshalJSON(data))
+				}
 			}
 		case "forum":
 			out.Forum_slug = string(in.String())
@@ -1288,15 +1305,7 @@ func easyjsonD2b7633eDecodeGithubComNdRTechDbForumModels12(in *jlexer.Lexer, out
 				*out.Thread_id = int(in.Int())
 			}
 		case "isEdited":
-			if in.IsNull() {
-				in.Skip()
-				out.Is_edited = nil
-			} else {
-				if out.Is_edited == nil {
-					out.Is_edited = new(bool)
-				}
-				*out.Is_edited = bool(in.Bool())
-			}
+			out.Is_edited = bool(in.Bool())
 		case "parent":
 			if in.IsNull() {
 				in.Skip()
@@ -1361,7 +1370,7 @@ func easyjsonD2b7633eEncodeGithubComNdRTechDbForumModels12(out *jwriter.Writer, 
 	if in.Created == nil {
 		out.RawString("null")
 	} else {
-		out.String(string(*in.Created))
+		out.Raw((*in.Created).MarshalJSON())
 	}
 	if !first {
 		out.RawByte(',')
@@ -1384,11 +1393,7 @@ func easyjsonD2b7633eEncodeGithubComNdRTechDbForumModels12(out *jwriter.Writer, 
 	}
 	first = false
 	out.RawString("\"isEdited\":")
-	if in.Is_edited == nil {
-		out.RawString("null")
-	} else {
-		out.Bool(bool(*in.Is_edited))
-	}
+	out.Bool(bool(in.Is_edited))
 	if in.Parent != nil {
 		if !first {
 			out.RawByte(',')

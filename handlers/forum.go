@@ -5,102 +5,85 @@ import (
 	"github.com/nd-r/tech-db-forum/dberrors"
 	"github.com/nd-r/tech-db-forum/models"
 	"github.com/valyala/fasthttp"
-	"log"
+	// "log"
 )
 
 // CreateForum - handler создания форума
 // POST /forum/create
 func CreateForum(ctx *fasthttp.RequestCtx) {
-	ctx.SetContentType("application/json")
 	forum := models.Forum{}
-
 	forum.UnmarshalJSON(ctx.PostBody())
 
-	pqErr := database.CreateForum(&forum)
-	if pqErr != nil {
-		switch pqErr.Code {
-		case dberrors.UniqueConstraint:
-			ctx.SetStatusCode(409)
+	forumResp, err := database.CreateForum(&forum)
 
-			forumExisting, _ := database.GetForumDetails(forum.Slug)
-			resp, _ := forumExisting.MarshalJSON()
-			ctx.Write(resp)
+	var resp []byte
 
-			return
+	switch err {
+	case nil:
+		ctx.SetStatusCode(201)
+		resp, _ = forumResp.MarshalJSON()
 
-		case dberrors.NotNullConstraint:
-			ctx.SetStatusCode(404)
-			ctx.Write(models.ErrorMsg)
+	case dberrors.ErrForumExists:
+		ctx.SetStatusCode(409)
+		resp, _ = forumResp.MarshalJSON()
 
-			return
-		}
+	case dberrors.ErrUserNotFound:
+		ctx.SetStatusCode(404)
+		resp = models.ErrorMsg
 	}
 
-	ctx.SetStatusCode(201)
-	resp, _ := forum.MarshalJSON()
+	ctx.SetContentType("application/json")
 	ctx.Write(resp)
 }
 
 // CreateThread - handler создания ветки
 // POST /forum/{slug}/create
 func CreateThread(ctx *fasthttp.RequestCtx) {
-	ctx.SetContentType("application/json")
-
 	threadDetails := models.Thread{}
 	threadDetails.UnmarshalJSON(ctx.PostBody())
 
 	slug := ctx.UserValue("slug")
 
-	pqErr := database.CreateThread(&slug, &threadDetails)
-	if pqErr != nil {
-		switch pqErr.Code {
-		case dberrors.NotNullConstraint:
-			ctx.SetStatusCode(404)
-			ctx.Write(models.ErrorMsg)
+	threadExisting, err := database.CreateThread(&slug, &threadDetails)
 
-			return
+	var resp []byte
 
-		case dberrors.UniqueConstraint:
-			ctx.SetStatusCode(409)
-			threadExisting, err := database.GetThread(*threadDetails.Slug)
-			if err != nil{
-				log.Fatalln(err)
-			}
-			
-			resp, err := threadExisting.MarshalJSON()
-			if err != nil{
-				log.Fatalln(err)
-			}
-			ctx.Write(resp)
+	switch err {
+	case nil:
+		ctx.SetStatusCode(201)
+		resp, _ = threadExisting.MarshalJSON()
 
-			return
-		}
+	case dberrors.ErrUserNotFound, dberrors.ErrForumNotFound:
+		ctx.SetStatusCode(404)
+		resp = models.ErrorMsg
+
+	case dberrors.ErrThreadExists:
+		ctx.SetStatusCode(409)
+		resp, _ = threadExisting.MarshalJSON()
 	}
 
-	ctx.SetStatusCode(201)
-	resp, err := threadDetails.MarshalJSON()
-	if err != nil {
-		log.Fatalln(err)
-	}
+	ctx.SetContentType("application/json")
 	ctx.Write(resp)
 }
 
 // GetForumDetails - handler информации ветки
 // GET /forum/{slug}/details
 func GetForumDetails(ctx *fasthttp.RequestCtx) {
-	ctx.SetContentType("application/json")
 	slug := ctx.UserValue("slug")
 
 	forum, err := database.GetForumDetails(slug)
-	if err != nil {
-		ctx.SetStatusCode(404)
-		ctx.Write(models.ErrorMsg)
 
-		return
+	var resp []byte
+
+	switch err {
+	case nil:
+		resp, _ = forum.MarshalJSON()
+	default:
+		ctx.SetStatusCode(404)
+		resp = models.ErrorMsg
 	}
 
-	ctx.SetStatusCode(200)
-	resp, _ := forum.MarshalJSON()
+	ctx.SetContentType("application/json")
 	ctx.Write(resp)
 }
 
@@ -109,25 +92,29 @@ func GetForumDetails(ctx *fasthttp.RequestCtx) {
 func GetForumThreads(ctx *fasthttp.RequestCtx) {
 	ctx.SetContentType("application/json")
 
+	
+
 	slug := ctx.UserValue("slug")
 	limit := ctx.QueryArgs().Peek("limit")
 	since := ctx.QueryArgs().Peek("since")
 	desc := ctx.QueryArgs().Peek("desc")
 
-	threadArr, statusCode := database.GetForumThreads(&slug, limit, since, desc)
-	ctx.SetStatusCode(statusCode)
+	threadArr, error := database.GetForumThreads(&slug, limit, since, desc)
 
-	switch statusCode {
-	case 200:
+	var resp []byte
+	switch error {
+	case nil:
 		if threadArr == nil {
 			ctx.Write([]byte("[]"))
 			return
 		}
-		resp, _ := threadArr.MarshalJSON()
-		ctx.Write(resp)
-	case 404:
-		ctx.Write(models.ErrorMsg)
+		resp, _ = threadArr.MarshalJSON()
+	case dberrors.ErrForumNotFound:
+		ctx.SetStatusCode(404)
+		resp = models.ErrorMsg
 	}
+
+	ctx.Write(resp)
 }
 
 // GetForumUsers - handler получение списка пользователей

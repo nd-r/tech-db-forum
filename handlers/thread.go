@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/nd-r/tech-db-forum/database"
+	"github.com/nd-r/tech-db-forum/dberrors"
 	"github.com/nd-r/tech-db-forum/models"
 	"github.com/valyala/fasthttp"
 	"log"
@@ -10,26 +11,35 @@ import (
 // CreateNewPosts - создание новых постов
 // POST /thread/{slug_or_id}/create
 func CreateNewPosts(ctx *fasthttp.RequestCtx) {
-	ctx.SetContentType("application/json")
 	slugOrID := ctx.UserValue("slug_or_id")
 
 	postsArr := models.PostArr{}
 	postsArr.UnmarshalJSON(ctx.PostBody())
 
-	newPosts, statusCode := database.CreatePosts(slugOrID, &postsArr)
-	ctx.SetStatusCode(statusCode)
+	newPosts, err := database.CreatePosts(slugOrID, &postsArr)
 
-	switch statusCode {
-	case 201:
+	var resp []byte
+
+	switch err {
+	case nil:
+		ctx.SetStatusCode(201)
 		if newPosts != nil {
-			resp, _ := newPosts.MarshalJSON()
-			ctx.Write(resp)
-			return
+			resp, _ = newPosts.MarshalJSON()
+		} else {
+			resp = []byte("[]")
 		}
-		ctx.Write([]byte("[]"))
-	default:
-		ctx.Write(models.ErrorMsg)
+
+	case dberrors.ErrThreadNotFound, dberrors.ErrUserNotFound:
+		ctx.SetStatusCode(404)
+		resp = models.ErrorMsg
+
+	case dberrors.ErrPostsConflict:
+		ctx.SetStatusCode(409)
+		resp = models.ErrorMsg
 	}
+
+	ctx.SetContentType("application/json")
+	ctx.Write(resp)
 }
 
 // GetThreadDetails - получение информации о ветке обсуждения
@@ -114,7 +124,6 @@ func VoteThread(ctx *fasthttp.RequestCtx) {
 
 	thread, err := database.PutVote(slugOrID, &vote)
 	if err != nil {
-		log.Println(err)
 		ctx.SetStatusCode(404)
 		ctx.Write(models.ErrorMsg)
 		return

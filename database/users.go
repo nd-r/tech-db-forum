@@ -1,78 +1,84 @@
 package database
 
 import (
+	"github.com/jackc/pgx"
+	"github.com/nd-r/tech-db-forum/dberrors"
 	"github.com/nd-r/tech-db-forum/models"
 	"log"
-	"strings"
 )
 
 const createUserQuery = "INSERT INTO users (about, email, fullname, nickname) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING RETURNING id"
 const selectUsrByNickOrEmailQuery = "SELECT about, email, fullname, nickname FROM users WHERE lower(nickname)=lower($1) OR lower(email)=lower($2)"
 
 func CreateUser(usr *models.User, nickname interface{}) (*models.UsersArr, error) {
-	tx := db.MustBegin()
-	defer tx.Commit()
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer tx.Rollback()
 
 	var id int
-	err := tx.Get(&id, createUserQuery, usr.About, usr.Email, usr.Fullname, nickname)
-	if err != nil{
-		var users models.UsersArr
-		err := tx.Select(&users, selectUsrByNickOrEmailQuery, nickname, usr.Email)
-		if err != nil{
-			log.Fatalln(err);
+	if err = tx.QueryRow(createUserQuery, &usr.About, &usr.Email, &usr.Fullname, &nickname).Scan(&id); err != nil {
+		existingUsers := models.UsersArr{}
+
+		rows, err := tx.Query(selectUsrByNickOrEmailQuery, &nickname, &usr.Email)
+		if err != nil {
+			log.Fatalln(err)
 		}
-		return &users, nil;
+		defer rows.Close()
+
+		for rows.Next() {
+			existingUser := models.User{}
+			if err = rows.Scan(&existingUser.About, &existingUser.Email, &existingUser.Fullname, &existingUser.Nickname); err != nil {
+				log.Fatalln(err)
+			}
+
+			existingUsers = append(existingUsers, &existingUser)
+		}
+		return &existingUsers, dberrors.ErrUserExists
 	}
-	return nil, nil;
+
+	tx.Commit()
+	return nil, nil
 }
 
 const getUserProfileQuery = "SELECT about, email, fullname, nickname FROM users WHERE lower(nickname)=lower($1)"
 
 func GetUserProfile(nickname interface{}) (*models.User, error) {
-	tx := db.MustBegin()
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatalln(err)
+	}
 	defer tx.Commit()
+
 	user := models.User{}
 
-	err := tx.Get(&user, getUserProfileQuery, nickname)
-	if err != nil {
-		return nil, err
+	if err = tx.QueryRow(getUserProfileQuery, &nickname).
+		Scan(&user.About, &user.Email, &user.Fullname, &user.Nickname); err != nil {
+		return nil, dberrors.ErrUserNotFound
 	}
 
-	return &user, err
+	return &user, nil
 }
 
-const updateUserProfileQuery = "UPDATE users SET about=$1, email=$2, fullname=$3 WHERE lower(nickname)=lower($4) RETURNING about, email, fullname, nickname"
+const updateUserProfileQuery = "UPDATE users SET about = COALESCE($1, users.about), email = COALESCE($2, users.email), fullname = COALESCE($3, users.fullname) WHERE lower(nickname)=lower($4) RETURNING about, email, fullname, nickname"
 
-func UpdateUserProfile(newData *models.UserUpd) (*models.User, int) {
-	tx := db.MustBegin()
-	defer tx.Commit()
-	userArr := models.UsersArr{}
-
-	tx.Select(&userArr, selectUsrByNickOrEmailQuery, newData.Nickname, newData.Email)
-
-	switch len(userArr) {
-	case 0:
-		return nil, 404
-	case 1:
-		if strings.ToLower(userArr[0].Nickname) == strings.ToLower(*newData.Nickname) {
-			if newData.About != nil {
-				userArr[0].About = *newData.About
-			}
-			if newData.Email != nil {
-				userArr[0].Email = *newData.Email
-			}
-			if newData.Fullname != nil {
-				userArr[0].Fullname = *newData.Fullname
-			}
-
-			tx.Select(&userArr[0], updateUserProfileQuery, userArr[0].About, userArr[0].Email, userArr[0].Fullname, userArr[0].Nickname)
-
-			return &userArr[0], 200
-		}
-		return nil, 404
-	case 2:
-		return nil, 409
-	default:
-		return nil, 0
+func UpdateUserProfile(newData *models.UserUpd, nickname interface{}) (*models.User, error) {
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatalln(err)
 	}
+	defer tx.Commit()
+
+	user := models.User{}
+
+	if err = tx.QueryRow(updateUserProfileQuery, newData.About, newData.Email, newData.Fullname, nickname).
+		Scan(&user.About, &user.Email, &user.Fullname, &user.Nickname); err != nil {
+		if _, ok := err.(pgx.PgError); ok {
+			return nil, dberrors.ErrUserConflict
+		}
+		return nil, dberrors.ErrUserNotFound
+	}
+
+	return &user, nil
 }

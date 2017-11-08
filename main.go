@@ -1,13 +1,13 @@
 package main
 
 import (
-	"sync"
+	// "sync"
 	_ "github.com/lib/pq"
 	"github.com/nd-r/tech-db-forum/database"
 	"github.com/nd-r/tech-db-forum/services"
 	"github.com/nd-r/tech-db-forum/models"
 	"github.com/valyala/fasthttp"
-	"net/http"
+	// "net/http"
 	"log"
 	_ "net/http/pprof"
 	_ "runtime"

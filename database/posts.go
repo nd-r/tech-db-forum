@@ -6,10 +6,12 @@ import (
 	"strings"
 )
 
-const getPostDetailsQuery = "SELECT id, user_nick, message, created, forum_slug, thread_id, is_edited, parent FROM post WHERE id=$1"
-const getPostForumDetailsQuery = "SELECT f.slug, f.posts, f.threads, f.title, f.moderator FROM post p JOIN forum f ON p.forum_slug = f.slug WHERE p.id = $1"
-const getPostAuthorDetailsQuery = "SELECT u.nickname, u.fullname, u.email, u.about FROM post p JOIN users u ON p.user_nick = u.nickname WHERE p.id = $1"
-const getPostThreadDetailsQuery = "SELECT t.user_nick, t.created,t.forum_slug, t.id, t.message, t.slug, t.title, t.votes_count FROM post p JOIN thread t ON p.thread_id = t.id WHERE p.id = $1"
+const getPostDetailsQuery = "SELECT id, user_nick::TEXT, message, created, forum_slug::TEXT, thread_id, is_edited, parent FROM post WHERE id=$1"
+const getPostForumDetailsQuery = "SELECT f.slug::TEXT, f.posts, f.threads, f.title, f.moderator::TEXT FROM post p JOIN forum f ON p.forum_slug = f.slug WHERE p.id = $1"
+const getPostAuthorDetailsQuery = "SELECT u.nickname::TEXT, u.fullname, u.email::TEXT, u.about FROM post p JOIN users u ON p.user_nick = u.nickname WHERE p.id = $1"
+const getPostThreadDetailsQuery = "SELECT t.user_nick::TEXT, t.created,t.forum_slug::TEXT, t.id, t.message, t.slug::TEXT, t.title, t.votes_count FROM post p JOIN thread t ON p.thread_id = t.id WHERE p.id = $1"
+
+//PIZDEC
 
 func GetPostDetails(id *string, related []byte) (*models.PostDetails, int) {
 	tx, err := db.Begin()
@@ -48,7 +50,7 @@ func GetPostDetails(id *string, related []byte) (*models.PostDetails, int) {
 	return &postDetails, 200
 }
 
-const updatePostDetailsQuery = "UPDATE post SET message=coalesce($2,message), is_edited=(CASE WHEN $2 IS NULL OR $2 = message THEN FALSE ELSE TRUE END) WHERE ID=$1 RETURNING id, user_nick, message, created, forum_slug, thread_id, is_edited, parent"
+const updatePostDetailsQuery = "UPDATE post SET message=coalesce($2,message), is_edited=(CASE WHEN $2 IS NULL OR $2 = message THEN FALSE ELSE TRUE END) WHERE ID=$1 RETURNING id, user_nick::TEXT, message, created, forum_slug::TEXT, thread_id, is_edited, parent"
 
 func UpdatePostDetails(id *string, postUpd *models.PostUpdate) (*models.Post, int) {
 	tx, err := db.Begin()

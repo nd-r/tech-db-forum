@@ -7,34 +7,40 @@ import (
 	"log"
 )
 
-const createUserQuery = "INSERT INTO users (about, email, fullname, nickname) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING RETURNING id"
-const selectUsrByNickOrEmailQuery = "SELECT about, email, fullname, nickname FROM users WHERE lower(nickname)=lower($1) OR lower(email)=lower($2)"
+const createUserQuery = "INSERT INTO users (about, email, fullname, nickname) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING"
+const selectUsrByNickOrEmailQuery = "SELECT nickname::TEXT, email::TEXT, about, fullname FROM users WHERE nickname=$1 OR email=$2"
 
-func CreateUser(usr *models.User, nickname interface{}) (*models.UsersArr, error) {
+func CreateUser(user *models.User, nickname interface{}) (*models.UsersArr, error) {
 	tx, err := db.Begin()
 	if err != nil {
 		log.Fatalln(err)
 	}
-	defer tx.Rollback()
 
-	var id int
-	if err = tx.QueryRow(createUserQuery, &usr.About, &usr.Email, &usr.Fullname, &nickname).Scan(&id); err != nil {
+	res, err := tx.Exec(createUserQuery, &user.About, &user.Email, &user.Fullname, &nickname)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	if res.RowsAffected() == 0 {
 		existingUsers := models.UsersArr{}
 
-		rows, err := tx.Query(selectUsrByNickOrEmailQuery, &nickname, &usr.Email)
+		rows, err := tx.Query(selectUsrByNickOrEmailQuery, &nickname, &user.Email)
 		if err != nil {
 			log.Fatalln(err)
 		}
-		defer rows.Close()
 
 		for rows.Next() {
 			existingUser := models.User{}
-			if err = rows.Scan(&existingUser.About, &existingUser.Email, &existingUser.Fullname, &existingUser.Nickname); err != nil {
+
+			if err = rows.Scan(&existingUser.Nickname, &existingUser.Email, &existingUser.About, &existingUser.Fullname); err != nil {
 				log.Fatalln(err)
 			}
 
 			existingUsers = append(existingUsers, &existingUser)
 		}
+
+		rows.Close()
+		tx.Rollback()
 		return &existingUsers, dberrors.ErrUserExists
 	}
 
@@ -42,26 +48,27 @@ func CreateUser(usr *models.User, nickname interface{}) (*models.UsersArr, error
 	return nil, nil
 }
 
-const getUserProfileQuery = "SELECT about, email, fullname, nickname FROM users WHERE lower(nickname)=lower($1)"
+const getUserProfileQuery = "SELECT nickname::TEXT, email::TEXT, about, fullname FROM users WHERE nickname = $1"
 
 func GetUserProfile(nickname interface{}) (*models.User, error) {
 	tx, err := db.Begin()
 	if err != nil {
 		log.Fatalln(err)
 	}
-	defer tx.Commit()
 
 	user := models.User{}
 
 	if err = tx.QueryRow(getUserProfileQuery, &nickname).
-		Scan(&user.About, &user.Email, &user.Fullname, &user.Nickname); err != nil {
+		Scan(&user.Nickname, &user.Email, &user.About, &user.Fullname); err != nil {
+		tx.Rollback()
 		return nil, dberrors.ErrUserNotFound
 	}
 
+	tx.Commit()
 	return &user, nil
 }
 
-const updateUserProfileQuery = "UPDATE users SET about = COALESCE($1, users.about), email = COALESCE($2, users.email), fullname = COALESCE($3, users.fullname) WHERE lower(nickname)=lower($4) RETURNING about, email, fullname, nickname"
+const updateUserProfileQuery = "UPDATE users SET about = COALESCE($1, users.about), email = COALESCE($2, users.email), fullname = COALESCE($3, users.fullname) WHERE nickname=$4 RETURNING nickname::TEXT, email::TEXT, about, fullname"
 
 func UpdateUserProfile(newData *models.UserUpd, nickname interface{}) (*models.User, error) {
 	tx, err := db.Begin()
@@ -72,8 +79,8 @@ func UpdateUserProfile(newData *models.UserUpd, nickname interface{}) (*models.U
 
 	user := models.User{}
 
-	if err = tx.QueryRow(updateUserProfileQuery, newData.About, newData.Email, newData.Fullname, nickname).
-		Scan(&user.About, &user.Email, &user.Fullname, &user.Nickname); err != nil {
+	if err = tx.QueryRow(updateUserProfileQuery, newData.About, newData.Email, newData.Fullname, &nickname).
+		Scan(&user.Nickname, &user.Email, &user.About, &user.Fullname); err != nil {
 		if _, ok := err.(pgx.PgError); ok {
 			return nil, dberrors.ErrUserConflict
 		}

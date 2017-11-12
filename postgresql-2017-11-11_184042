@@ -1,0 +1,2 @@
+2017-11-11 18:40:42.034 UTC [21] LOG:  ending log output to stderr
+2017-11-11 18:40:42.034 UTC [21] HINT:  Future log output will go to log destination "csvlog".

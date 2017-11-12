@@ -18,6 +18,8 @@ var pgConfig = pgx.ConnConfig{
 	Database: "docker",
 }
 
+var zero = 0
+
 // DBPoolInit initializes sqlx db pool
 func DBPoolInit() {
 	var err error
@@ -55,23 +57,29 @@ func InitDBSchema() {
 
 	tx.Commit()
 
-	_, err = db.Prepare("InsertIntoThread", createThreadQuery)	
 	_, err = db.Prepare("getThreadBySlug", getThreadBySlug)
+	log.Println(err)
+	_, err = db.Prepare("getUserProfileQuery", getUserProfileQuery)
+	log.Println(err)
 	_, err = db.Prepare("putVoteByThrID", putVoteByThrID)
+	log.Println(err)
 	_, err = db.Prepare("putVoteByThrSLUG", putVoteByThrSLUG)
-	_, err = db.Prepare("getThreadIdBySlug", getThreadIdBySlug)
-	_, err = db.Prepare("getThreadIdById", getThreadIdById)
+	log.Println(err)
 	_, err = db.Prepare("insertPost", insertPost)
 	if err != nil{
 		log.Fatalln(err, 1)
 	}
-	_, err = db.Prepare("insertForumUsers", insertForumUsers)
 	_, err = db.Prepare("generateNextIDs", generateNextIDs)
-	_, err = db.Prepare("claimInfoWithoutParent", claimInfoWithoutParent)
-	_, err = db.Prepare("claimInfoWithParent", claimInfoWithParent)
+	log.Println(err)
 	_, err = db.Prepare("getUserProfileQuery", getUserProfileQuery)
+	log.Println(err)
 	_, err = db.Prepare("selectParentAndParents", selectParentAndParents)
-	_, err = db.Prepare("getForumIdBySlug", getForumIdBySlug)
-
+	log.Println(err)
+	
+	_, err = db.Prepare("insertIntoForumUsers", insertIntoForumUsers)
+	log.Println(err)
+	_, err = db.Prepare("selectParentAndParents", selectParentAndParents)
+	log.Println(err)
+	
 }
 

@@ -1267,15 +1267,7 @@ func easyjsonD2b7633eDecodeGithubComNdRTechDbForumModels12(in *jlexer.Lexer, out
 		}
 		switch key {
 		case "id":
-			if in.IsNull() {
-				in.Skip()
-				out.Id = nil
-			} else {
-				if out.Id == nil {
-					out.Id = new(int)
-				}
-				*out.Id = int(in.Int())
-			}
+			out.Id = int(in.Int())
 		case "author":
 			out.User_nick = string(in.String())
 		case "message":
@@ -1295,36 +1287,33 @@ func easyjsonD2b7633eDecodeGithubComNdRTechDbForumModels12(in *jlexer.Lexer, out
 		case "forum":
 			out.Forum_slug = string(in.String())
 		case "thread":
-			if in.IsNull() {
-				in.Skip()
-				out.Thread_id = nil
-			} else {
-				if out.Thread_id == nil {
-					out.Thread_id = new(int)
-				}
-				*out.Thread_id = int(in.Int())
-			}
+			out.Thread_id = int(in.Int())
 		case "isEdited":
 			out.Is_edited = bool(in.Bool())
 		case "parent":
-			if in.IsNull() {
-				in.Skip()
-				out.Parent = nil
-			} else {
-				if out.Parent == nil {
-					out.Parent = new(int)
-				}
-				*out.Parent = int(in.Int())
-			}
+			out.Parent = int64(in.Int64())
 		case "Parents":
 			if in.IsNull() {
 				in.Skip()
 				out.Parents = nil
 			} else {
+				in.Delim('[')
 				if out.Parents == nil {
-					out.Parents = new(string)
+					if !in.IsDelim(']') {
+						out.Parents = make([]int64, 0, 8)
+					} else {
+						out.Parents = []int64{}
+					}
+				} else {
+					out.Parents = (out.Parents)[:0]
 				}
-				*out.Parents = string(in.String())
+				for !in.IsDelim(']') {
+					var v10 int64
+					v10 = int64(in.Int64())
+					out.Parents = append(out.Parents, v10)
+					in.WantComma()
+				}
+				in.Delim(']')
 			}
 		default:
 			in.SkipRecursive()
@@ -1345,11 +1334,7 @@ func easyjsonD2b7633eEncodeGithubComNdRTechDbForumModels12(out *jwriter.Writer, 
 	}
 	first = false
 	out.RawString("\"id\":")
-	if in.Id == nil {
-		out.RawString("null")
-	} else {
-		out.Int(int(*in.Id))
-	}
+	out.Int(int(in.Id))
 	if !first {
 		out.RawByte(',')
 	}
@@ -1383,38 +1368,37 @@ func easyjsonD2b7633eEncodeGithubComNdRTechDbForumModels12(out *jwriter.Writer, 
 	}
 	first = false
 	out.RawString("\"thread\":")
-	if in.Thread_id == nil {
-		out.RawString("null")
-	} else {
-		out.Int(int(*in.Thread_id))
-	}
+	out.Int(int(in.Thread_id))
 	if !first {
 		out.RawByte(',')
 	}
 	first = false
 	out.RawString("\"isEdited\":")
 	out.Bool(bool(in.Is_edited))
-	if in.Parent != nil {
+	if in.Parent != 0 {
 		if !first {
 			out.RawByte(',')
 		}
 		first = false
 		out.RawString("\"parent\":")
-		if in.Parent == nil {
-			out.RawString("null")
-		} else {
-			out.Int(int(*in.Parent))
-		}
+		out.Int64(int64(in.Parent))
 	}
 	if !first {
 		out.RawByte(',')
 	}
 	first = false
 	out.RawString("\"Parents\":")
-	if in.Parents == nil {
+	if in.Parents == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
 		out.RawString("null")
 	} else {
-		out.String(string(*in.Parents))
+		out.RawByte('[')
+		for v11, v12 := range in.Parents {
+			if v11 > 0 {
+				out.RawByte(',')
+			}
+			out.Int64(int64(v12))
+		}
+		out.RawByte(']')
 	}
 	out.RawByte('}')
 }
@@ -1461,34 +1445,16 @@ func easyjsonD2b7633eDecodeGithubComNdRTechDbForumModels13(in *jlexer.Lexer, out
 			continue
 		}
 		switch key {
-		case "Id":
-			out.Id = int(in.Int())
-		case "posts":
-			if in.IsNull() {
-				in.Skip()
-				out.Posts = nil
-			} else {
-				if out.Posts == nil {
-					out.Posts = new(int)
-				}
-				*out.Posts = int(in.Int())
-			}
 		case "slug":
 			out.Slug = string(in.String())
-		case "threads":
-			if in.IsNull() {
-				in.Skip()
-				out.Threads = nil
-			} else {
-				if out.Threads == nil {
-					out.Threads = new(int)
-				}
-				*out.Threads = int(in.Int())
-			}
 		case "title":
 			out.Title = string(in.String())
 		case "user":
 			out.Moderator = string(in.String())
+		case "threads":
+			out.Threads = int(in.Int())
+		case "posts":
+			out.Posts = int(in.Int())
 		default:
 			in.SkipRecursive()
 		}
@@ -1507,34 +1473,8 @@ func easyjsonD2b7633eEncodeGithubComNdRTechDbForumModels13(out *jwriter.Writer, 
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"Id\":")
-	out.Int(int(in.Id))
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"posts\":")
-	if in.Posts == nil {
-		out.RawString("null")
-	} else {
-		out.Int(int(*in.Posts))
-	}
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
 	out.RawString("\"slug\":")
 	out.String(string(in.Slug))
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"threads\":")
-	if in.Threads == nil {
-		out.RawString("null")
-	} else {
-		out.Int(int(*in.Threads))
-	}
 	if !first {
 		out.RawByte(',')
 	}
@@ -1547,6 +1487,18 @@ func easyjsonD2b7633eEncodeGithubComNdRTechDbForumModels13(out *jwriter.Writer, 
 	first = false
 	out.RawString("\"user\":")
 	out.String(string(in.Moderator))
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"threads\":")
+	out.Int(int(in.Threads))
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"posts\":")
+	out.Int(int(in.Posts))
 	out.RawByte('}')
 }
 

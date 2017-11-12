@@ -92,19 +92,17 @@ func GetForumDetails(ctx *fasthttp.RequestCtx) {
 func GetForumThreads(ctx *fasthttp.RequestCtx) {
 	ctx.SetContentType("application/json")
 
-	
-
 	slug := ctx.UserValue("slug")
 	limit := ctx.QueryArgs().Peek("limit")
 	since := ctx.QueryArgs().Peek("since")
 	desc := ctx.QueryArgs().Peek("desc")
 
 	threadArr, error := database.GetForumThreads(&slug, limit, since, desc)
-
+	
 	var resp []byte
 	switch error {
 	case nil:
-		if threadArr == nil {
+		if len(*threadArr) == 0 {
 			ctx.Write([]byte("[]"))
 			return
 		}
@@ -120,25 +118,29 @@ func GetForumThreads(ctx *fasthttp.RequestCtx) {
 // GetForumUsers - handler получение списка пользователей
 // GET /forum/{slug}/users
 func GetForumUsers(ctx *fasthttp.RequestCtx) {
-	ctx.SetContentType("application/json")
 
-	slug := ctx.UserValue("slug").(string)
+	slug := ctx.UserValue("slug")
 	limit := ctx.QueryArgs().Peek("limit")
 	since := ctx.QueryArgs().Peek("since")
 	desc := ctx.QueryArgs().Peek("desc")
 
-	users, statusCode := database.GetForumUsers(&slug, limit, since, desc)
-	ctx.SetStatusCode(statusCode)
+	users, err := database.GetForumUsers(&slug, limit, since, desc)
 
-	switch statusCode {
-	case 200:
+	var resp []byte 
+
+	switch err {
+	case nil:
+		ctx.SetStatusCode(200)
 		if len(*users) != 0 {
-			resp, _ := users.MarshalJSON()
-			ctx.Write(resp)
-			return
+			resp, _ = users.MarshalJSON()
+		}else {
+			resp = []byte("[]")
 		}
-		ctx.Write([]byte("[]"))
-	case 404:
-		ctx.Write(models.ErrorMsg)
+	case dberrors.ErrForumNotFound:
+		ctx.SetStatusCode(404)
+		resp = models.ErrorMsg
 	}
+
+	ctx.SetContentType("application/json")	
+	ctx.Write(resp)
 }

@@ -5,23 +5,22 @@ import (
 )
 
 type Forum struct {
-	Id        int
-	Posts     *int   `json:"posts"`
 	Slug      string `json:"slug"`
-	Threads   *int   `json:"threads"`
 	Title     string `json:"title"`
 	Moderator string `json:"user"`
+	Threads   int    `json:"threads"`
+	Posts     int    `json:"posts"`
 }
 
 type Thread struct {
-	Id          *int    `json:"id"`
-	Slug        *string `json:"slug"`
-	Title       string  `json:"title"`
-	Message     string  `json:"message"`
-	Forum_slug  string  `json:"forum"`
-	User_nick   string  `json:"author"`
+	Id          *int      `json:"id"`
+	Slug        *string   `json:"slug"`
+	Title       string    `json:"title"`
+	Message     string    `json:"message"`
+	Forum_slug  string    `json:"forum"`
+	User_nick   string    `json:"author"`
 	Created     time.Time `json:"created"`
-	Votes_count *int    `json:"votes"`
+	Votes_count *int      `json:"votes"`
 }
 
 type ThreadUpdate struct {

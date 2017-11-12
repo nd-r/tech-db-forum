@@ -28,21 +28,27 @@ RUN /etc/init.d/postgresql start &&\
 RUN echo "host all  all    0.0.0.0/0  md5" >>\
     /etc/postgresql/$PGVER/main/pg_hba.conf
 
-# And add ``listen_addresses`` to ``/etc/postgresql/$PGVER/main/postgresql.conf``
 RUN echo "listen_addresses='*'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "synchronous_commit='off'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "shared_buffers = 192MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "effective_cache_size = 384MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
 
-# Expose the PostgreSQL port
+RUN echo "log_duration = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_min_duration_statement = 0" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_checkpoints = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_filename = 'postgresql-%Y-%m-%d_%H%M%S'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_directory = '/var/log/postgresql'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_destination = 'csvlog'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_destination = 'csvlog'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "logging_collector = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_disconnections = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_lock_waits = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_temp_files = 0 " >> /etc/postgresql/$PGVER/main/postgresql.conf
+
 EXPOSE 5432
 
-# Add VOLUMEs to allow backup of config, logs and databases
 VOLUME  ["/etc/postgresql", "/var/log/postgresql", "/var/lib/postgresql"]
-
-# Back to the root user
 USER root
-
-#
-# Сборка проекта
-#
 
 # Установка golang
 RUN apt-get install -y wget git && \
@@ -58,12 +64,6 @@ ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
 
 ADD ./ $GOPATH/src/github.com/nd-r/tech-db-forum/
 RUN go install github.com/nd-r/tech-db-forum/
-
-RUN echo "synchronous_commit='off'" >> /etc/postgresql/$PGVER/main/postgresql.conf
-RUN echo "shared_buffers = 512MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
-RUN echo "effective_cache_size = 1024MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
-
-
 
 WORKDIR ${GOPATH}/src/github.com/nd-r/tech-db-forum/
 

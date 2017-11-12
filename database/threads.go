@@ -23,9 +23,6 @@ const selectParentAndParents = "SELECT thread_id, parents FROM post WHERE id = $
 
 var created, _ = time.Parse("2006-01-02T15:04:05.000000Z", "2006-01-02T15:04:05.010000Z")
 
-const claimUserInfoAndInsertIntoFU = "WITH insertion AS (INSERT INTO forum_users (SELECT $1, nickname, email, about, fullname FROM users WHERE nickname=$2) ON CONFLICT DO NOTHING) " +
-	"SELECT nickname::TEXT, email::TEXT, about, fullname FROM users WHERE nickname = $2"
-
 func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostArr, error) {
 	tx, err := db.Begin()
 	if err != nil {
@@ -65,6 +62,7 @@ func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostAr
 		log.Fatalln(err)
 	}
 
+
 	//Inserting posts
 	rowsToCopy := [][]interface{}{}
 	for index, post := range *postsArr {
@@ -83,8 +81,7 @@ func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostAr
 		}
 
 		user := models.User{}
-		if err = tx.QueryRow(claimUserInfoAndInsertIntoFU, forumID, post.User_nick).Scan(&user.Nickname, &user.Email, &user.About, &user.Fullname); err != nil {
-			log.Println(err)
+		if err = tx.QueryRow("getUserProfileQuery", post.User_nick).Scan(&user.Nickname, &user.Email, &user.About, &user.Fullname); err != nil {
 			return nil, dberrors.ErrUserNotFound
 		}
 
@@ -94,27 +91,28 @@ func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostAr
 		post.Created = &created
 		post.User_nick = user.Nickname
 		post.Parents = append(post.Parents, ids[index])
-		// _, err = tx.Exec("insertIntoForumUsers", forumID, &user.Nickname, &user.Email, &user.About, &user.Fullname)
-		// if err != nil {
-		// 	log.Fatalln(err)
-		// }
+		_, err = db.Exec("insertIntoForumUsers", forumID, &user.Nickname, &user.Email, &user.About, &user.Fullname)
+		if err != nil{
+			log.Println(err)
+		}
 		rowsToCopy = append(rowsToCopy, []interface{}{post.Id, post.User_nick, post.Message, post.Created, post.Forum_slug, post.Thread_id, post.Parent, post.Parents})
 	}
 
-	rowsCreated, err := tx.CopyFrom(pgx.Identifier{"post"}, []string{"id", "user_nick", "message", "created", "forum_slug", "thread_id", "parent", "parents"}, pgx.CopyFromRows(rowsToCopy))
-	if err != nil {
+
+	rowsCreated, err := tx.CopyFrom(pgx.Identifier{"post"}, []string{"id", "user_nick","message","created","forum_slug", "thread_id", "parent", "parents"}, pgx.CopyFromRows(rowsToCopy))
+	if err != nil{
 		log.Fatalln(err)
 	}
-	if rowsCreated != len(*postsArr) {
+	if rowsCreated != len(*postsArr){
 		log.Println(err, rowsCreated)
 	}
 
 	_, err = tx.Exec(UpdateForumPosts, forumSlug, len(*postsArr))
-	if err != nil {
+	if err != nil{
 		log.Fatalln(err)
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err = tx.Commit(); err != nil{
 		log.Fatalln(err)
 	}
 

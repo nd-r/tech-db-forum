@@ -128,7 +128,7 @@ CREATE TABLE post (
 
 -- CREATE UNIQUE INDEX posts_thread_id_index
 --   ON post (thread_id, id);
---
+
 --
 CREATE INDEX posts_parents_index
   ON post
@@ -139,8 +139,8 @@ CREATE UNIQUE INDEX posts_thread_id_parents
 --
 -- CREATE UNIQUE INDEX posts_thread_id_parents_index
 --   ON post (thread_id, parents);
--- CREATE UNIQUE INDEX posts_parents
---   ON post (parent, thread_id, parents);
+CREATE UNIQUE INDEX posts_parents
+  ON post (parent, thread_id, parents);
 
 --
 -- VOTE

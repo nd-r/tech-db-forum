@@ -9,7 +9,7 @@ RUN apt-get -y update
 # Установка postgresql
 #
 ENV PGVER 9.6
-RUN apt-get install -y postgresql-$PGVER
+RUN apt-get install -y postgresql-$PGVER wget git 
 
 # Run the rest of the commands as the ``postgres``
 # user created by the ``postgres-$PGVER`` package 
@@ -28,31 +28,31 @@ RUN /etc/init.d/postgresql start &&\
 RUN echo "host all  all    0.0.0.0/0  md5" >>\
     /etc/postgresql/$PGVER/main/pg_hba.conf
 
-RUN echo "listen_addresses='*'" >> /etc/postgresql/$PGVER/main/postgresql.conf
-RUN echo "synchronous_commit='off'" >> /etc/postgresql/$PGVER/main/postgresql.conf
-RUN echo "shared_buffers = 192MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
-RUN echo "effective_cache_size = 384MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "listen_addresses='*'\n\
+synchronous_commit='off'\n\
+shared_buffers = 192MB\n\
+effective_cache_size = 384MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
 
-RUN echo "log_duration = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
-RUN echo "log_min_duration_statement = 0" >> /etc/postgresql/$PGVER/main/postgresql.conf
-RUN echo "log_checkpoints = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
-RUN echo "log_filename = 'postgresql-%Y-%m-%d_%H%M%S'" >> /etc/postgresql/$PGVER/main/postgresql.conf
-RUN echo "log_directory = '/var/log/postgresql'" >> /etc/postgresql/$PGVER/main/postgresql.conf
-RUN echo "log_destination = 'csvlog'" >> /etc/postgresql/$PGVER/main/postgresql.conf
-RUN echo "log_destination = 'csvlog'" >> /etc/postgresql/$PGVER/main/postgresql.conf
-RUN echo "logging_collector = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
-RUN echo "log_disconnections = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
-RUN echo "log_lock_waits = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
-RUN echo "log_temp_files = 0 " >> /etc/postgresql/$PGVER/main/postgresql.conf
+# RUN echo "log_duration = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
+# RUN echo "log_min_duration_statement = 2" >> /etc/postgresql/$PGVER/main/postgresql.conf
+# RUN echo "log_checkpoints = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
+# RUN echo "log_filename = 'postgresql-%Y-%m-%d_%H%M%S'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+# RUN echo "log_directory = '/var/log/postgresql'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+# RUN echo "log_destination = 'csvlog'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+# RUN echo "log_destination = 'csvlog'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+# RUN echo "logging_collector = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
+# RUN echo "log_disconnections = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
+# RUN echo "log_lock_waits = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
+# RUN echo "log_temp_files = 0 " >> /etc/postgresql/$PGVER/main/postgresql.conf
 
 EXPOSE 5432
+# EXPOSE 1111
 
 VOLUME  ["/etc/postgresql", "/var/log/postgresql", "/var/lib/postgresql"]
 USER root
 
 # Установка golang
-RUN apt-get install -y wget git && \
-    wget https://storage.googleapis.com/golang/go1.9.1.linux-amd64.tar.gz
+RUN wget https://storage.googleapis.com/golang/go1.9.1.linux-amd64.tar.gz
 
 RUN tar -C /usr/local -xzf go1.9.1.linux-amd64.tar.gz && \
     mkdir go && mkdir go/src && mkdir go/bin && mkdir go/pkg

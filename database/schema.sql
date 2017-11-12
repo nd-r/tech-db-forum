@@ -112,12 +112,12 @@ CREATE UNIQUE INDEX thread_covering_index
 CREATE TABLE post (
   id         SERIAL PRIMARY KEY,
 
-  user_nick  TEXT    NOT NULL,
+  user_nick  TEXT      NOT NULL,
 
   message    TEXT      NOT NULL,
   created    TIMESTAMPTZ,
 
-  forum_slug TEXT    NOT NULL,
+  forum_slug TEXT      NOT NULL,
   thread_id  INTEGER   NOT NULL,
 
   parent     INTEGER                    DEFAULT 0,
@@ -126,21 +126,22 @@ CREATE TABLE post (
   is_edited  BOOLEAN   NOT NULL         DEFAULT FALSE
 );
 
--- CREATE UNIQUE INDEX posts_thread_id_index
---   ON post (thread_id, id);
+CREATE UNIQUE INDEX posts_thread_id_index
+  ON post (thread_id, id);
 
---
 CREATE INDEX posts_parents_index
   ON post
   USING GIN (parents);
---
+
 CREATE UNIQUE INDEX posts_thread_id_parents
   ON post (id, thread_id, parents);
 --
--- CREATE UNIQUE INDEX posts_thread_id_parents_index
---   ON post (thread_id, parents);
+CREATE UNIQUE INDEX posts_thread_id_parents_index
+  ON post (thread_id, parents);
+
 CREATE UNIQUE INDEX posts_parents
-  ON post (parent, thread_id, parents);
+  ON post (parent, thread_id, parents)
+  WHERE parent = 0;
 
 --
 -- VOTE
@@ -162,16 +163,15 @@ CREATE UNIQUE INDEX vote_nickname_thread_id_index
 
 CREATE TABLE forum_users (
   forumId  INTEGER,
-  nickname CITEXT,
-  email    CITEXT,
+  nickname TEXT,
+  email    TEXT,
 
   about    TEXT,
-  fullname TEXT,
-  CONSTRAINT fu UNIQUE (forumId, nickname)
+  fullname TEXT
 );
 
-CREATE UNIQUE INDEX forum_users_forum_id_nickname_index
-  ON forum_users (forumId, nickname);
+CREATE UNIQUE INDEX forum_users_forum_id_nickname_index2
+  ON forum_users (forumId, lower(nickname));
 
-CREATE UNIQUE INDEX forum_users_covering_index
-  ON forum_users (forumId, nickname, email, about, fullname);
+CREATE UNIQUE INDEX forum_users_covering_index2
+  ON forum_users (forumId,lower(nickname), nickname, email, about, fullname);

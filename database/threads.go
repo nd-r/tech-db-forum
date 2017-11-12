@@ -37,12 +37,10 @@ func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostAr
 	threadID, err = strconv.Atoi(slugOrID.(string))
 	if err != nil {
 		if err = tx.QueryRow(getThreadIdAndForumSlugBySlug, slugOrID).Scan(&threadID, &forumSlug); err != nil {
-			log.Println(err)
 			return nil, dberrors.ErrThreadNotFound
 		}
 	} else {
 		if err = tx.QueryRow(getThreadIdAndForumSlugById, threadID).Scan(&threadID, &forumSlug); err != nil {
-			log.Println(err)
 			return nil, dberrors.ErrThreadNotFound
 		}
 	}
@@ -52,7 +50,7 @@ func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostAr
 	}
 
 	//claiming forum id
-	if err = tx.QueryRow(getForumIDBySlug, &forumSlug).Scan(&forumID); err != nil {
+	if err = tx.QueryRow("getForumIDBySlug", &forumSlug).Scan(&forumID); err != nil {
 		log.Fatalln(err)
 	}
 
@@ -71,11 +69,9 @@ func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostAr
 		if post.Parent != 0 {
 			if err = tx.QueryRow(selectParentAndParents, post.Parent).
 				Scan(&parentThreadID, &post.Parents); err != nil {
-				log.Println(err, post.Parent)
 				return nil, dberrors.ErrPostsConflict
 			}
 			if parentThreadID != 0 && parentThreadID != int64(threadID) {
-				log.Println(err)
 				return nil, dberrors.ErrPostsConflict
 			}
 		}
@@ -141,7 +137,6 @@ func PutVote(slugOrID interface{}, vote *models.Vote) (*models.Thread, error) {
 
 	if err != nil {
 		tx.Rollback()
-		log.Println(err)
 		return nil, err
 	}
 	return &thread, nil
@@ -164,18 +159,17 @@ func GetThread(slugOrID interface{}) (*models.Thread, error) {
 	_, err = strconv.Atoi(slugOrID.(string))
 
 	if err != nil {
-		err = tx.QueryRow(getThreadBySlug, slugOrID).
+		err = tx.QueryRow("getThreadBySlug", slugOrID).
 			Scan(&thread.Id, &thread.Slug, &thread.Title, &thread.Message, &thread.Forum_slug, &thread.User_nick, &thread.Created, &thread.Votes_count)
-		log.Println(err)
 		return &thread, err
 	}
 
-	err = tx.QueryRow(getThreadById, slugOrID).Scan(&thread.Id, &thread.Slug, &thread.Title, &thread.Message, &thread.Forum_slug, &thread.User_nick, &thread.Created, &thread.Votes_count)
-	log.Println(err)
+	err = tx.QueryRow("getThreadById", slugOrID).Scan(&thread.Id, &thread.Slug, &thread.Title, &thread.Message, &thread.Forum_slug, &thread.User_nick, &thread.Created, &thread.Votes_count)
 	return &thread, err
 }
 
-const checkThreadId = "SELECT id FROM thread WHERE id=$1"
+const checkThreadIdById = "SELECT id FROM thread WHERE id=$1"
+const checkThreadIdBySlug = "SELECT id FROM thread WHERE slug=$1"
 
 const getPostsFlat = "SELECT id, user_nick::TEXT, message, created, forum_slug::TEXT,thread_id,is_edited, parent" +
 	" FROM post WHERE thread_id=$1 AND id >COALESCE($3::TEXT::INTEGER,0) " +
@@ -205,15 +199,12 @@ func GetThreadPosts(slugOrID *string, limit []byte, since []byte, sort []byte, d
 	defer tx.Commit()
 
 	var ID int
-	var fs string
 	if _, err = strconv.Atoi(*slugOrID); err != nil {
-		if err = tx.QueryRow(getThreadIdAndForumSlugBySlug, slugOrID).Scan(&ID, &fs); err != nil {
-
+		if err = tx.QueryRow("checkThreadIdBySlug", slugOrID).Scan(&ID); err != nil {
 			return nil, 404
 		}
 	} else {
-		if err = tx.QueryRow(checkThreadId, slugOrID).Scan(&ID); err != nil {
-			log.Println(err)
+		if err = tx.QueryRow("checkThreadIdById", slugOrID).Scan(&ID); err != nil {
 			return nil, 404
 		}
 	}
@@ -287,7 +278,6 @@ func UpdateThreadDetails(slugOrID *string, thrUpdate *models.ThreadUpdate) (*mod
 	if ID, err = strconv.Atoi(*slugOrID); err != nil {
 		err = tx.QueryRow(getThreadIdAndForumSlugBySlug, slugOrID).Scan(&ID, &fs)
 		if err != nil {
-			log.Println(err)
 			return nil, 404
 		}
 	}
@@ -295,7 +285,6 @@ func UpdateThreadDetails(slugOrID *string, thrUpdate *models.ThreadUpdate) (*mod
 	var thread models.Thread
 
 	err = tx.QueryRow(threadUpdateQuery, thrUpdate.Message, thrUpdate.Title, ID).Scan(&thread.Id, &thread.Slug, &thread.Title, &thread.Message, &thread.Forum_slug, &thread.User_nick, &thread.Created, &thread.Votes_count)
-	log.Println(err)
 	if err != nil {
 		return nil, 404
 	}

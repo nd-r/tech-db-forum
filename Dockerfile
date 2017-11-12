@@ -30,8 +30,8 @@ RUN echo "host all  all    0.0.0.0/0  md5" >>\
 
 RUN echo "listen_addresses='*'\n\
 synchronous_commit='off'\n\
-shared_buffers = 192MB\n\
-effective_cache_size = 384MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
+shared_buffers = 400MB\n\
+effective_cache_size = 600MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
 
 # RUN echo "log_duration = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
 # RUN echo "log_min_duration_statement = 2" >> /etc/postgresql/$PGVER/main/postgresql.conf

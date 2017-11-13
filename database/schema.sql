@@ -129,10 +129,10 @@ CREATE TABLE post (
 
 CREATE UNIQUE INDEX posts_thread_id_index
   ON post (thread_id, id);
-
-CREATE INDEX posts_parents_index
-  ON post
-  USING GIN (parents);
+--
+-- CREATE INDEX posts_parents_index
+--   ON post
+--   USING GIN (parents);
 
 CREATE UNIQUE INDEX posts_thread_id_parents
   ON post (id, thread_id, parents);
@@ -143,6 +143,12 @@ CREATE UNIQUE INDEX posts_thread_id_parents_index
 CREATE UNIQUE INDEX posts_parents
   ON post (parent, thread_id, parents)
   WHERE parent = 0;
+
+CREATE INDEX parent_tree_1 on post (parent, thread_id, main_parent) WHERE parent = 0;
+CREATE INDEX parent_tree_2 on post (main_parent, parents);
+CREATE INDEX parent_tree_3 on post (main_parent, parents, id);
+
+
 
 --
 -- VOTE

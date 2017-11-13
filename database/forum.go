@@ -101,7 +101,7 @@ func CreateThread(forumSlug interface{}, threadDetails *models.Thread) (*models.
 
 		existingThread := models.Thread{}
 
-		if err = tx.QueryRow(getThreadBySlug, threadDetails.Slug).
+		if err = tx.QueryRow("getThreadBySlug", threadDetails.Slug).
 			Scan(&existingThread.Id, &existingThread.Slug, &existingThread.Title,
 				&existingThread.Message, &existingThread.Forum_slug, &existingThread.User_nick, &existingThread.Created,
 				&existingThread.Votes_count); err == nil {

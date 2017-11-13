@@ -15,7 +15,8 @@ import (
 
 func main() {
 	// runtime.GOMAXPROCS(8)
-
+	log.SetFlags(log.Llongfile)
+	
 	database.DBPoolInit()
 	database.InitDBSchema()
 
@@ -23,7 +24,6 @@ func main() {
 
 	error := models.ErrorStr{Message: "error occured"}
 	models.ErrorMsg, _ = error.MarshalJSON()
-	log.SetFlags(log.Llongfile)
 	log.Println("started")
 	// go http.ListenAndServe(":1111",nil)
 	// var wg sync.WaitGroup

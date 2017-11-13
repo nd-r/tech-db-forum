@@ -58,7 +58,7 @@ func GetUserProfile(nickname interface{}) (*models.User, error) {
 
 	user := models.User{}
 
-	if err = tx.QueryRow(getUserProfileQuery, &nickname).
+	if err = tx.QueryRow("getUserProfileQuery", &nickname).
 		Scan(&user.Nickname, &user.Email, &user.About, &user.Fullname); err != nil {
 		tx.Rollback()
 		return nil, dberrors.ErrUserNotFound

@@ -13,7 +13,7 @@ import (
 const getThreadIdAndForumSlugBySlug = "SELECT id, forum_slug::TEXT FROM thread WHERE slug=$1"
 const getThreadIdAndForumSlugById = "SELECT id, forum_slug::TEXT FROM thread WHERE id=$1"
 
-const insertPost = "INSERT INTO post (id, user_nick, message, forum_slug, thread_id, parent, parents, created) VALUES ($1 :: INTEGER, $2, $3, $4, $5, $6, $8::BIGINT[] || $1 :: BIGINT, $7)"
+// const insertPost = "INSERT INTO post (id, user_nick, message, forum_slug, thread_id, parent, parents, created) VALUES ($1 :: INTEGER, $2, $3, $4, $5, $6, $8::BIGINT[] || $1 :: BIGINT, $7)"
 
 const UpdateForumPosts = "UPDATE forum SET posts=posts+$2 WHERE slug=$1"
 
@@ -60,7 +60,6 @@ func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostAr
 		log.Fatalln(err)
 	}
 
-
 	//Inserting posts
 	rowsToCopy := [][]interface{}{}
 	for index, post := range *postsArr {
@@ -88,27 +87,26 @@ func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostAr
 		post.User_nick = user.Nickname
 		post.Parents = append(post.Parents, ids[index])
 		_, err = db.Exec("insertIntoForumUsers", forumID, &user.Nickname, &user.Email, &user.About, &user.Fullname)
-		if err != nil{
+		if err != nil {
 			log.Println(err)
 		}
-		rowsToCopy = append(rowsToCopy, []interface{}{post.Id, post.User_nick, post.Message, post.Created, post.Forum_slug, post.Thread_id, post.Parent, post.Parents})
+		rowsToCopy = append(rowsToCopy, []interface{}{post.Id, post.User_nick, post.Message, post.Created, post.Forum_slug, post.Thread_id, post.Parent, post.Parents, post.Parents[0]})
 	}
 
-
-	rowsCreated, err := tx.CopyFrom(pgx.Identifier{"post"}, []string{"id", "user_nick","message","created","forum_slug", "thread_id", "parent", "parents"}, pgx.CopyFromRows(rowsToCopy))
-	if err != nil{
+	rowsCreated, err := tx.CopyFrom(pgx.Identifier{"post"}, []string{"id", "user_nick", "message", "created", "forum_slug", "thread_id", "parent", "parents", "main_parent"}, pgx.CopyFromRows(rowsToCopy))
+	if err != nil {
 		log.Fatalln(err)
 	}
-	if rowsCreated != len(*postsArr){
+	if rowsCreated != len(*postsArr) {
 		log.Println(err, rowsCreated)
 	}
 
 	_, err = tx.Exec(UpdateForumPosts, forumSlug, len(*postsArr))
-	if err != nil{
+	if err != nil {
 		log.Fatalln(err)
 	}
 
-	if err = tx.Commit(); err != nil{
+	if err = tx.Commit(); err != nil {
 		log.Fatalln(err)
 	}
 
@@ -181,15 +179,22 @@ const getPostsTree = "SELECT id, user_nick::TEXT, message, created, forum_slug::
 	" ORDER BY parents $4" +
 	" LIMIT $2::TEXT::BIGINT;"
 
-const getPostsParentTree = "WITH sub AS (" +
-	"SELECT parents FROM post" +
-	" WHERE parent=0 AND thread_id = $1 AND parents > COALESCE((SELECT parents FROM post WHERE id = $3::TEXT::INTEGER), '{0}')" +
-	" ORDER BY post.parents $4" +
-	" LIMIT $2::TEXT::INTEGER)" +
-	" SELECT p.id, p.user_nick::TEXT, p.message, p.created, p.forum_slug::TEXT, p.thread_id, p.is_edited, p.parent" +
-	" FROM post p" +
-	"  JOIN sub ON sub.parents <@ p.parents" +
-	" ORDER BY p.parents $4;"
+// const getPostsParentTree = "WITH sub AS (" +
+// 	"SELECT parents FROM post" +
+// 	" WHERE parent=0 AND thread_id = $1 AND parents > COALESCE((SELECT parents FROM post WHERE id = $3::TEXT::INTEGER), '{0}')" +
+// 	" ORDER BY post.parents $4" +
+// 	" LIMIT $2::TEXT::INTEGER)" +
+// 	" SELECT p.id, p.user_nick::TEXT, p.message, p.created, p.forum_slug::TEXT, p.thread_id, p.is_edited, p.parent" +
+// 	" FROM post p" +
+// 	"  JOIN sub ON sub.parents <@ p.parents" +
+// 	" ORDER BY p.parents $4;"
+
+const getPostsParentTree = "SELECT p.id, p.user_nick::TEXT, p.message, p.created, p.forum_slug::TEXT, p.thread_id, p.is_edited, p.parent " +
+	"FROM post p " +
+	"JOIN (SELECT main_parent FROM post " +
+	"WHERE parent=0 AND thread_id = $1 AND main_parent > COALESCE((SELECT main_parent FROM post WHERE id = $3::TEXT::INTEGER), 0) ORDER BY id $4 " +
+	"LIMIT $2::TEXT::INTEGER) s ON p.main_parent=s.main_parent " +
+	"ORDER BY p.parents $4"
 
 func GetThreadPosts(slugOrID *string, limit []byte, since []byte, sort []byte, desc []byte) (*models.PostArr, int) {
 	tx, err := db.Begin()

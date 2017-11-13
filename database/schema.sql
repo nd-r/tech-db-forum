@@ -110,20 +110,21 @@ CREATE UNIQUE INDEX thread_covering_index
 -- POST
 --
 CREATE TABLE post (
-  id         SERIAL PRIMARY KEY,
+  id          SERIAL PRIMARY KEY,
 
-  user_nick  TEXT      NOT NULL,
+  user_nick   TEXT      NOT NULL,
 
-  message    TEXT      NOT NULL,
-  created    TIMESTAMPTZ,
+  message     TEXT      NOT NULL,
+  created     TIMESTAMPTZ,
 
-  forum_slug TEXT      NOT NULL,
-  thread_id  INTEGER   NOT NULL,
+  forum_slug  TEXT      NOT NULL,
+  thread_id   INTEGER   NOT NULL,
 
-  parent     INTEGER                    DEFAULT 0,
-  parents    BIGINT [] NOT NULL,
+  parent      INTEGER DEFAULT 0,
+  parents     BIGINT [] NOT NULL,
+  main_parent BIGINT    NOT NULL,
 
-  is_edited  BOOLEAN   NOT NULL         DEFAULT FALSE
+  is_edited BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE UNIQUE INDEX posts_thread_id_index
@@ -174,4 +175,4 @@ CREATE UNIQUE INDEX forum_users_forum_id_nickname_index2
   ON forum_users (forumId, lower(nickname));
 
 CREATE UNIQUE INDEX forum_users_covering_index2
-  ON forum_users (forumId,lower(nickname), nickname, email, about, fullname);
+  ON forum_users (forumId, lower(nickname), nickname, email, about, fullname);

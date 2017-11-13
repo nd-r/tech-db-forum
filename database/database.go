@@ -59,16 +59,11 @@ func InitDBSchema() {
 
 	_, err = db.Prepare("getThreadBySlug", getThreadBySlug)
 	log.Println(err)
-	_, err = db.Prepare("getUserProfileQuery", getUserProfileQuery)
-	log.Println(err)
 	_, err = db.Prepare("putVoteByThrID", putVoteByThrID)
 	log.Println(err)
 	_, err = db.Prepare("putVoteByThrSLUG", putVoteByThrSLUG)
 	log.Println(err)
-	_, err = db.Prepare("insertPost", insertPost)
-	if err != nil {
-		log.Fatalln(err, 1)
-	}
+ 
 	_, err = db.Prepare("generateNextIDs", generateNextIDs)
 	log.Println(err)
 	_, err = db.Prepare("getUserProfileQuery", getUserProfileQuery)
@@ -173,6 +168,12 @@ func InitDBSchema() {
 	_, err = db.Prepare("checkThreadIdById", checkThreadIdById)
 	if err != nil{
 		log.Fatalln(checkThreadIdById, err)		
+	}
+
+	//Getting posts
+	_, err = db.Prepare("getPostDetailsQuery", getPostDetailsQuery)
+	if err != nil{
+		log.Fatalln(getPostDetailsQuery, err)		
 	}
 
 

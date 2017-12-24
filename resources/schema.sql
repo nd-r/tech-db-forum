@@ -110,28 +110,29 @@ CREATE UNIQUE INDEX thread_covering_index
 -- POST
 --
 CREATE TABLE post (
-  id         SERIAL PRIMARY KEY,
+  id          SERIAL PRIMARY KEY,
 
-  user_nick  TEXT      NOT NULL,
+  user_nick   TEXT      NOT NULL,
 
-  message    TEXT      NOT NULL,
-  created    TIMESTAMPTZ,
+  message     TEXT      NOT NULL,
+  created     TIMESTAMPTZ,
 
-  forum_slug TEXT      NOT NULL,
-  thread_id  INTEGER   NOT NULL,
+  forum_slug  TEXT      NOT NULL,
+  thread_id   INTEGER   NOT NULL,
 
-  parent     INTEGER                    DEFAULT 0,
-  parents    BIGINT [] NOT NULL,
+  parent      INTEGER            DEFAULT 0,
+  parents     BIGINT [] NOT NULL,
+  main_parent BIGINT    NOT NULL,
 
-  is_edited  BOOLEAN   NOT NULL         DEFAULT FALSE
+  is_edited   BOOLEAN   NOT NULL DEFAULT FALSE
 );
 
 CREATE UNIQUE INDEX posts_thread_id_index
   ON post (thread_id, id);
-
-CREATE INDEX posts_parents_index
-  ON post
-  USING GIN (parents);
+--
+-- CREATE INDEX posts_parents_index
+--   ON post
+--   USING GIN (parents);
 
 CREATE UNIQUE INDEX posts_thread_id_parents
   ON post (id, thread_id, parents);
@@ -142,6 +143,31 @@ CREATE UNIQUE INDEX posts_thread_id_parents_index
 CREATE UNIQUE INDEX posts_parents
   ON post (parent, thread_id, parents)
   WHERE parent = 0;
+
+
+-- CREATE UNIQUE INDEX parent_tree_1
+--   ON post (parent, thread_id, main_parent)
+--   WHERE parent = 0;
+--
+-- CREATE UNIQUE INDEX parent_tree_12
+--   ON post (parent, thread_id, id, main_parent)
+--   WHERE parent = 0;
+-- CREATE UNIQUE INDEX parent_tree_13
+--   ON post (parent, thread_id, id, main_parent)
+--   WHERE parent = 0;
+CREATE UNIQUE INDEX ON post (thread_id, id, parent, main_parent)
+  WHERE parent = 0;
+
+CREATE UNIQUE INDEX ON post(id, parents);
+
+CREATE UNIQUE INDEX parent_tree_2
+  ON post (main_parent, parents);
+
+CREATE UNIQUE INDEX parent_tree_3
+  ON post (main_parent, parents, id);
+  
+CREATE UNIQUE INDEX parent_tree_4
+  ON post (id, main_parent);
 
 --
 -- VOTE
@@ -174,4 +200,4 @@ CREATE UNIQUE INDEX forum_users_forum_id_nickname_index2
   ON forum_users (forumId, lower(nickname));
 
 CREATE UNIQUE INDEX forum_users_covering_index2
-  ON forum_users (forumId,lower(nickname), nickname, email, about, fullname);
+  ON forum_users (forumId, lower(nickname), nickname, email, about, fullname);

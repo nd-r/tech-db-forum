@@ -1,19 +1,12 @@
 package database
 
 import (
+	"log"
+
 	"github.com/jackc/pgx"
 	"github.com/nd-r/tech-db-forum/dberrors"
 	"github.com/nd-r/tech-db-forum/models"
-	"log"
 )
-
-const createForumQuery = "INSERT INTO forum (slug, title, moderator) " +
-	"VALUES ($1, $2, (SELECT nickname FROM users WHERE nickname=$3)) " +
-	"RETURNING moderator::TEXT"
-
-const selectForumQuery = "SELECT slug::TEXT, title, posts, threads, moderator::TEXT " +
-	"FROM forum " +
-	"WHERE slug=$1"
 
 func CreateForum(forum *models.Forum) (*models.Forum, error) {
 	tx, err := db.Begin()
@@ -25,7 +18,7 @@ func CreateForum(forum *models.Forum) (*models.Forum, error) {
 
 	if err = tx.QueryRow("selectForumQuery", &forum.Slug).
 		Scan(&forumExisting.Slug, &forumExisting.Title,
-			&forumExisting.Posts, &forumExisting.Threads, &forumExisting.Moderator); err == nil {
+		&forumExisting.Posts, &forumExisting.Threads, &forumExisting.Moderator); err == nil {
 
 		tx.Rollback()
 		return &forumExisting, dberrors.ErrForumExists
@@ -59,16 +52,6 @@ func GetForumDetails(slug interface{}) (*models.Forum, error) {
 	return &forum, err
 }
 
-const claimUserInfo = "SELECT id, nickname::text, email::text, about, fullname FROM users WHERE nickname = $1"
-
-const getForumIDAndSlugBySlug = "SELECT id, slug::text FROM forum WHERE slug = $1"
-
-const insertIntoThread = "INSERT INTO thread (slug, title, message, forum_id, forum_slug, user_id, user_nick, created) " +
-	"VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT DO NOTHING RETURNING id"
-
-const insertIntoForumUsers = "INSERT INTO forum_users (forumid, nickname, email, about, fullname) " +
-	"VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING"
-
 func CreateThread(forumSlug interface{}, threadDetails *models.Thread) (*models.Thread, error) {
 	tx, err := db.Begin()
 	if err != nil {
@@ -83,7 +66,7 @@ func CreateThread(forumSlug interface{}, threadDetails *models.Thread) (*models.
 		Scan(&userID, &user.Nickname, &user.Email, &user.About, &user.Fullname); err != nil {
 
 		tx.Rollback()
-		
+
 		return nil, dberrors.ErrUserNotFound
 	}
 
@@ -91,7 +74,7 @@ func CreateThread(forumSlug interface{}, threadDetails *models.Thread) (*models.
 		Scan(&forumID, &realForumSlug); err != nil {
 
 		tx.Rollback()
-		
+
 		return nil, dberrors.ErrForumNotFound
 	}
 
@@ -101,10 +84,10 @@ func CreateThread(forumSlug interface{}, threadDetails *models.Thread) (*models.
 
 		existingThread := models.Thread{}
 
-		if err = tx.QueryRow(getThreadBySlug, threadDetails.Slug).
+		if err = tx.QueryRow("getThreadBySlug", threadDetails.Slug).
 			Scan(&existingThread.Id, &existingThread.Slug, &existingThread.Title,
-				&existingThread.Message, &existingThread.Forum_slug, &existingThread.User_nick, &existingThread.Created,
-				&existingThread.Votes_count); err == nil {
+			&existingThread.Message, &existingThread.Forum_slug, &existingThread.User_nick, &existingThread.Created,
+			&existingThread.Votes_count); err == nil {
 
 			tx.Rollback()
 			return &existingThread, dberrors.ErrThreadExists
@@ -125,28 +108,6 @@ func CreateThread(forumSlug interface{}, threadDetails *models.Thread) (*models.
 	tx.Commit()
 	return threadDetails, nil
 }
-
-const getForumIDBySlug = "SELECT id FROM forum WHERE slug=$1"
-
-const gftLimit = "SELECT id, slug::TEXT, title, message, forum_slug::TEXT, user_nick::TEXT, created, votes_count FROM thread " +
-	"WHERE forum_id = $1 " +
-	"ORDER BY created " +
-	"LIMIT $2::TEXT::INTEGER"
-
-const gftLimitDesc = "SELECT id, slug::TEXT, title, message, forum_slug::TEXT, user_nick::TEXT, created, votes_count FROM thread " +
-	"WHERE forum_id = $1 " +
-	"ORDER BY created DESC " +
-	"LIMIT $2::TEXT::INTEGER"
-
-const gftCreatedLimit = "SELECT id, slug::TEXT, title, message, forum_slug::TEXT, user_nick::TEXT, created, votes_count FROM thread " +
-	"WHERE forum_id = $1 AND created >= $2::TEXT::TIMESTAMPTZ " +
-	"ORDER BY created " +
-	"LIMIT $3::TEXT::INTEGER"
-
-const gftCreatedLimitDesc = "SELECT id, slug::TEXT, title, message, forum_slug::TEXT, user_nick::TEXT, created, votes_count FROM thread " +
-	"WHERE forum_id = $1 AND created <= $2::TEXT::TIMESTAMPTZ " +
-	"ORDER BY created DESC " +
-	"LIMIT $3::TEXT::INTEGER"
 
 func GetForumThreads(slug interface{}, limit []byte, since []byte, desc []byte) (*models.TreadArr, error) {
 	tx, err := db.Begin()
@@ -227,26 +188,6 @@ func GetForumThreads(slug interface{}, limit []byte, since []byte, desc []byte) 
 	return &threads, nil
 }
 
-const gfuLimit = "SELECT nickname::TEXT, email::TEXT, about, fullname FROM forum_users " +
-	"WHERE forumid = $1 " +
-	"ORDER BY lower(nickname) " +
-	"LIMIT $2::TEXT::INTEGER"
-
-const gfuLimitDesc = "SELECT nickname::TEXT, email::TEXT, about, fullname FROM forum_users " +
-	"WHERE forumid = $1 " +
-	"ORDER BY lower(nickname) DESC " +
-	"LIMIT $2::TEXT::INTEGER"
-
-const gfuSinceLimit = "SELECT nickname::TEXT, email::TEXT, about, fullname FROM forum_users " +
-	"WHERE forumid = $1 AND lower(nickname) > lower($2::TEXT) " +
-	"ORDER BY lower(nickname) " +
-	"LIMIT $3::TEXT::INTEGER"
-
-const gfuSinceLimitDesc = "SELECT nickname::TEXT, email::TEXT, about, fullname FROM forum_users " +
-	"WHERE forumid = $1 AND lower(nickname) < lower($2::TEXT) " +
-	"ORDER BY lower(nickname) DESC " +
-	"LIMIT $3::TEXT::INTEGER"
-
 func GetForumUsers(slug interface{}, limit []byte, since []byte, desc []byte) (*models.UsersArr, error) {
 	tx, err := db.Begin()
 	if err != nil {
@@ -269,38 +210,38 @@ func GetForumUsers(slug interface{}, limit []byte, since []byte, desc []byte) (*
 				rows, err = tx.Query("gfuLimitDesc", forumID, nil)
 			} else {
 				// no limit, no since, asc
-				rows, err = tx.Query("gfuLimit", forumID, nil)				
+				rows, err = tx.Query("gfuLimit", forumID, nil)
 			}
 		} else {
 			if isDesc {
 				// no limit, yes since, desc
-				rows, err = tx.Query("gfuSinceLimitDesc", forumID, since, nil)				
+				rows, err = tx.Query("gfuSinceLimitDesc", forumID, since, nil)
 			} else {
 				// no limit, yes since, asc
-				rows, err = tx.Query("gfuSinceLimit", forumID, since, nil)				
+				rows, err = tx.Query("gfuSinceLimit", forumID, since, nil)
 			}
 		}
 	} else {
 		if since == nil {
 			if isDesc {
 				// yes limit, no since, desc
-				rows, err = tx.Query("gfuLimitDesc", forumID, limit)				
+				rows, err = tx.Query("gfuLimitDesc", forumID, limit)
 			} else {
 				// yes limit, no since, asc
-				rows, err = tx.Query("gfuLimit", forumID, limit)				
+				rows, err = tx.Query("gfuLimit", forumID, limit)
 			}
 		} else {
 			if isDesc {
 				// yes limit, yes since, desc
-				rows, err = tx.Query("gfuSinceLimitDesc", forumID, since, limit)				
+				rows, err = tx.Query("gfuSinceLimitDesc", forumID, since, limit)
 			} else {
 				// yes limit, yes since, asc
-				rows, err = tx.Query("gfuSinceLimit", forumID, since, limit)				
+				rows, err = tx.Query("gfuSinceLimit", forumID, since, limit)
 			}
 		}
 	}
 
-	if err != nil{
+	if err != nil {
 		rows.Close()
 		tx.Rollback()
 		log.Fatalln(err, limit == nil, since == nil, isDesc)

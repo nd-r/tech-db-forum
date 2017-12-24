@@ -1,4 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS CITEXT;
+SET RANDOM_PAGE_COST = 1;
 
 DROP TABLE IF EXISTS users, forum, thread, post, vote, forum_users CASCADE;
 
@@ -122,22 +123,22 @@ CREATE TABLE post (
   is_edited   BOOLEAN   NOT NULL DEFAULT FALSE
 );
 
-CREATE UNIQUE INDEX posts_thread_id_index
-  ON post (thread_id, id);
+-- CREATE UNIQUE INDEX posts_thread_id_index
+--   ON post (thread_id, id);
 --
 -- CREATE INDEX posts_parents_index
 --   ON post
 --   USING GIN (parents);
 
-CREATE UNIQUE INDEX posts_thread_id_parents
-  ON post (id, thread_id, parents);
+-- CREATE UNIQUE INDEX posts_thread_id_parents
+--   ON post (id, thread_id, parents);
 --
 CREATE UNIQUE INDEX posts_thread_id_parents_index
   ON post (thread_id, parents);
 
-CREATE UNIQUE INDEX posts_parents
-  ON post (parent, thread_id, parents)
-  WHERE parent = 0;
+-- CREATE UNIQUE INDEX posts_parents
+--   ON post (parent, thread_id, parents)
+--   WHERE parent = 0;
 
 
 -- CREATE UNIQUE INDEX parent_tree_1
@@ -153,10 +154,10 @@ CREATE UNIQUE INDEX posts_parents
 CREATE UNIQUE INDEX ON post (thread_id, id, parent, main_parent)
   WHERE parent = 0;
 
-CREATE UNIQUE INDEX ON post(id, parents);
+-- CREATE UNIQUE INDEX ON post(id, parents);
 
-CREATE UNIQUE INDEX parent_tree_2
-  ON post (main_parent, parents);
+-- CREATE UNIQUE INDEX parent_tree_2
+--   ON post (main_parent, parents);
 
 CREATE UNIQUE INDEX parent_tree_3
   ON post (main_parent, parents, id);

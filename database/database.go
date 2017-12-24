@@ -14,7 +14,7 @@ const schema = "./resources/schema.sql"
 
 var pgConfig = pgx.ConnConfig{
 	Host:     "localhost",
-	Port:     25432,
+	Port:     5432,
 	User:     "docker",
 	Password: "docker",
 	Database: "docker",

@@ -11,6 +11,11 @@ RUN apt-get -y update
 ENV PGVER 9.6
 RUN apt-get install -y postgresql-$PGVER wget git
 
+RUN wget https://storage.googleapis.com/golang/go1.9.1.linux-amd64.tar.gz
+
+RUN tar -C /usr/local -xzf go1.9.1.linux-amd64.tar.gz && \
+    mkdir go && mkdir go/src && mkdir go/bin && mkdir go/pkg
+
 # Run the rest of the commands as the ``postgres``
 # user created by the ``postgres-$PGVER`` package 
 # when it was ``apt-get installed``
@@ -25,10 +30,14 @@ RUN /etc/init.d/postgresql start &&\
 
 # Adjust PostgreSQL configuration so that remote connections to the
 # database are possible.
-RUN echo "host all  all    0.0.0.0/0  md5" >>\
+RUN rm -rf /etc/postgresql/$PGVER/main/pg_hba.conf
+RUN echo "local   all             postgres                                peer\n\
+local   all             docker                                md5\n\
+host    all             all             127.0.0.1/32            md5\n\
+host all  all    0.0.0.0/0  md5" >>\
     /etc/postgresql/$PGVER/main/pg_hba.conf
 
-RUN echo "listen_addresses='*'\n\
+RUN echo "unix_socket_directories = '/var/run/postgresql/'\n\
 synchronous_commit='off'\n\
 shared_buffers = 192MB\n\
 effective_cache_size = 384MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
@@ -52,10 +61,6 @@ VOLUME  ["/etc/postgresql", "/var/log/postgresql", "/var/lib/postgresql"]
 USER root
 
 # Установка golang
-RUN wget https://storage.googleapis.com/golang/go1.9.1.linux-amd64.tar.gz
-
-RUN tar -C /usr/local -xzf go1.9.1.linux-amd64.tar.gz && \
-    mkdir go && mkdir go/src && mkdir go/bin && mkdir go/pkg
 
 # Выставляем переменную окружения для сборки проекта
 ENV GOPATH $HOME/go
@@ -71,4 +76,4 @@ EXPOSE 5000
 
 USER postgres
 CMD  service postgresql start && tech-db-forum
-# ["/usr/lib/postgresql/9.6/bin/postgres", "-D", "/var/lib/postgresql/9.6/main", "-c", "config_file=/etc/postgresql/9.6/main/postgresql.conf"] &&
+# CMD ["/usr/lib/postgresql/9.6/bin/postgres", "-D", "/var/lib/postgresql/9.6/main", "-c", "config_file=/etc/postgresql/9.6/main/postgresql.conf"] &&

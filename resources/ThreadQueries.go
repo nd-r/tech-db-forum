@@ -138,7 +138,7 @@ WHERE forum_id = $1 AND created <= $2::TEXT::TIMESTAMPTZ
 ORDER BY created DESC
 LIMIT $3::TEXT::INTEGER`
 
-func PrepateThreadQueries(tx *pgx.Tx) {
+func PrepateThreadQueries(tx *pgx.ConnPool) {
 	if _, err := tx.Prepare("insertIntoThread", insertIntoThread); err != nil {
 		log.Fatalln(err)
 	}

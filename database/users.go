@@ -13,6 +13,7 @@ func CreateUser(user *models.User, nickname interface{}) (*models.UsersArr, erro
 	if err != nil {
 		log.Fatalln(err)
 	}
+	defer tx.Rollback()
 
 	res, err := tx.Exec("createUserQuery", &user.About, &user.Email, &user.Fullname, &nickname)
 	if err != nil {

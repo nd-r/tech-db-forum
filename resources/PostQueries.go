@@ -246,7 +246,7 @@ JOIN (
 ON p.main_parent=s.id
 ORDER BY p.parents`
 
-func PreparePostQueries(tx *pgx.Tx) {
+func PreparePostQueries(tx *pgx.ConnPool) {
 	if _, err := tx.Prepare("updatePostDetailsQuery", updatePostDetailsQuery); err != nil {
 		log.Fatalln(err)
 	}

@@ -46,10 +46,12 @@ func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostAr
 	threadID, err = strconv.Atoi(slugOrID.(string))
 	if err != nil {
 		if err = tx.QueryRow("getThreadIdAndForumSlugBySlug", slugOrID).Scan(&threadID, &forumSlug); err != nil {
+			log.Println(err)
 			return nil, dberrors.ErrThreadNotFound
 		}
 	} else {
 		if err = tx.QueryRow("getThreadIdAndForumSlugById", threadID).Scan(&threadID, &forumSlug); err != nil {
+			log.Println(err)
 			return nil, dberrors.ErrThreadNotFound
 		}
 	}
@@ -87,6 +89,7 @@ func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostAr
 
 		user := models.User{}
 		if err = tx.QueryRow("getUserProfileQuery", post.User_nick).Scan(&user.Nickname, &user.Email, &user.About, &user.Fullname); err != nil {
+			log.Println(err)
 			return nil, dberrors.ErrUserNotFound
 		}
 
@@ -264,6 +267,7 @@ func getThreadPostsFlat(ID int, limit []byte, since []byte, desc []byte, tx *pgx
 		}
 		posts = append(posts, &post)
 	}
+	rows.Close()
 
 	return &posts, 200
 }
@@ -319,6 +323,8 @@ func getThreadPostsTree(ID int, limit []byte, since []byte, desc []byte, tx *pgx
 		}
 		posts = append(posts, &post)
 	}
+	rows.Close()
+
 
 	return &posts, 200
 }
@@ -374,6 +380,7 @@ func getThreadPostsParentTree(ID int, limit []byte, since []byte, desc []byte, t
 		}
 		posts = append(posts, &post)
 	}
+	rows.Close()
 
 	return &posts, 200
 }

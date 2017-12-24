@@ -60,7 +60,7 @@ const getUserProfileQuery = `SELECT
 FROM users
 WHERE nickname = $1`
 
-func PrepareUsersQueries(tx *pgx.Tx) {
+func PrepareUsersQueries(tx *pgx.ConnPool) {
 	if _, err := tx.Prepare("createUserQuery", createUserQuery); err != nil {
 		log.Fatalln(err)
 	}

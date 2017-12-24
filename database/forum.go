@@ -57,6 +57,7 @@ func CreateThread(forumSlug interface{}, threadDetails *models.Thread) (*models.
 	if err != nil {
 		log.Fatalln(err)
 	}
+	defer tx.Rollback()
 
 	user := models.User{}
 	var userID, forumID int
@@ -64,7 +65,7 @@ func CreateThread(forumSlug interface{}, threadDetails *models.Thread) (*models.
 
 	if err = tx.QueryRow("claimUserInfo", &threadDetails.User_nick).
 		Scan(&userID, &user.Nickname, &user.Email, &user.About, &user.Fullname); err != nil {
-
+		log.Println(err, *forumSlug.(*interface{}))
 		tx.Rollback()
 
 		return nil, dberrors.ErrUserNotFound
@@ -72,7 +73,7 @@ func CreateThread(forumSlug interface{}, threadDetails *models.Thread) (*models.
 
 	if err = tx.QueryRow("getForumIDAndSlugBySlug", &forumSlug).
 		Scan(&forumID, &realForumSlug); err != nil {
-
+		log.Println(err)
 		tx.Rollback()
 
 		return nil, dberrors.ErrForumNotFound
@@ -114,6 +115,7 @@ func GetForumThreads(slug interface{}, limit []byte, since []byte, desc []byte) 
 	if err != nil {
 		log.Fatalln(err)
 	}
+	defer tx.Commit()
 
 	isDesc := string(desc) == "true"
 
@@ -193,6 +195,7 @@ func GetForumUsers(slug interface{}, limit []byte, since []byte, desc []byte) (*
 	if err != nil {
 		log.Fatalln(err)
 	}
+	defer tx.Commit()
 
 	var forumID int
 	if err = tx.QueryRow("getForumIDBySlug", &slug).Scan(&forumID); err != nil {

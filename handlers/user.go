@@ -15,11 +15,11 @@ func CreateUser(ctx *fasthttp.RequestCtx) {
 
 	nickname := ctx.UserValue("nickname")
 
-	existingUsers, error := database.CreateUser(&user, nickname)
+	existingUsers, err := database.CreateUser(&user, nickname)
 
 	var resp []byte
 
-	switch error {
+	switch err {
 	case nil:
 		ctx.SetStatusCode(201)
 		user.Nickname = ctx.UserValue("nickname").(string)

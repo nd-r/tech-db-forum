@@ -19,6 +19,7 @@ func main() {
 	log.SetFlags(log.Llongfile)
 
 	database.DBPoolInit()
+	database.InitDBSchema()
 
 	router := services.RouterInit()
 

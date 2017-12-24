@@ -52,7 +52,7 @@ const getForumIDBySlug = `SELECT id
 FROM forum
 WHERE slug=$1`
 
-func PrepareForumQueries(tx *pgx.Tx) {
+func PrepareForumQueries(tx *pgx.ConnPool) {
 	if _, err := tx.Prepare("createForumQuery", createForumQuery); err != nil {
 		log.Fatalln(err)
 	}

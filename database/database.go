@@ -21,8 +21,8 @@ var pgConfig = pgx.ConnConfig{
 }
 
 // InitDBSchema initializes tables, indexes, etc.
-func InitDBSchema(conn *pgx.Conn) error {
-	tx, err := conn.Begin()
+func InitDBSchema() {
+	tx, err := db.Begin()
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -38,15 +38,14 @@ func InitDBSchema(conn *pgx.Conn) error {
 	if _, err = tx.Exec(schema); err != nil {
 		log.Fatalln(err)
 	}
-
-	resources.PrepareForumQueries(tx)
-	resources.PrepareForumUsersQueries(tx)
-	resources.PreparePostQueries(tx)
-	resources.PrepateThreadQueries(tx)
-	resources.PrepareUsersQueries(tx)
-	resources.PrepareVotesQureies(tx)
 	tx.Commit()
-	return nil
+
+	resources.PrepareForumQueries(db)
+	resources.PrepareForumUsersQueries(db)
+	resources.PreparePostQueries(db)
+	resources.PrepateThreadQueries(db)
+	resources.PrepareUsersQueries(db)
+	resources.PrepareVotesQureies(db)
 }
 
 // DBPoolInit initializes pgx db pool
@@ -54,8 +53,7 @@ func DBPoolInit() {
 	var err error
 	db, err = pgx.NewConnPool(pgx.ConnPoolConfig{
 		ConnConfig:     pgConfig,
-		MaxConnections: 50,
-		AfterConnect:   InitDBSchema,
+		MaxConnections: 24,
 	})
 
 	if err != nil {

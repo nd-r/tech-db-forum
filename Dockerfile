@@ -9,7 +9,7 @@ RUN apt-get -y update
 # Установка postgresql
 #
 ENV PGVER 9.6
-RUN apt-get install -y postgresql-$PGVER wget git 
+RUN apt-get install -y postgresql-$PGVER wget git
 
 # Run the rest of the commands as the ``postgres``
 # user created by the ``postgres-$PGVER`` package 
@@ -33,18 +33,18 @@ synchronous_commit='off'\n\
 shared_buffers = 192MB\n\
 effective_cache_size = 384MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
 
-#RUN echo "log_duration = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
-#RUN echo "log_min_duration_statement = 10" >> /etc/postgresql/$PGVER/main/postgresql.conf
-#RUN echo "log_checkpoints = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
-#RUN echo "log_filename = 'postgresql-%Y-%m-%d_%H%M%S'" >> /etc/postgresql/$PGVER/main/postgresql.conf
-#RUN echo "log_directory = '/var/log/postgresql'" >> /etc/postgresql/$PGVER/main/postgresql.conf
-#RUN echo "log_destination = 'csvlog'" >> /etc/postgresql/$PGVER/main/postgresql.conf
-#RUN echo "log_destination = 'csvlog'" >> /etc/postgresql/$PGVER/main/postgresql.conf
-#RUN echo "logging_collector = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
-#RUN echo "log_disconnections = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
-#RUN echo "log_lock_waits = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
-#RUN echo "log_temp_files = 0 " >> /etc/postgresql/$PGVER/main/postgresql.conf
-#
+RUN echo "log_duration = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_min_duration_statement = 10" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_checkpoints = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_filename = 'postgresql-%Y-%m-%d_%H%M%S'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_directory = '/var/log/postgresql'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_destination = 'csvlog'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_destination = 'csvlog'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "logging_collector = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_disconnections = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_lock_waits = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_temp_files = 0 " >> /etc/postgresql/$PGVER/main/postgresql.conf
+
 EXPOSE 5432
 # EXPOSE 1111
 

@@ -3,6 +3,7 @@ package database
 import (
 	"bytes"
 	"log"
+	"sort"
 	"strconv"
 	"time"
 
@@ -13,6 +14,23 @@ import (
 
 var created, _ = time.Parse("2006-01-02T15:04:05.000000Z", "2006-01-02T15:04:05.010000Z")
 
+type forumUser struct {
+	userNickname *string
+	userEmail    *string
+	userAbout    *string
+	userFullname *string
+}
+type forumUserArr []forumUser
+
+func (fu forumUserArr) Len() int {
+	return len(fu)
+}
+func (fu forumUserArr) Swap(i, j int) {
+	fu[i], fu[j] = fu[j], fu[i]
+}
+func (fu forumUserArr) Less(i, j int) bool{
+	return *(fu[i].userNickname) < *(fu[j].userNickname)
+}
 
 func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostArr, error) {
 	tx, err := db.Begin()
@@ -51,9 +69,9 @@ func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostAr
 		log.Fatalln(err)
 	}
 
-
+	var allFu forumUserArr
 	//Inserting posts
-	rowsToCopy := [][]interface{}{}
+	var rowsToCopy [][]interface{}
 	for index, post := range *postsArr {
 		var parentThreadID int64
 
@@ -79,12 +97,18 @@ func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostAr
 		post.User_nick = user.Nickname
 		post.Parents = append(post.Parents, ids[index])
 
-		_, err = tx.Exec("insertIntoForumUsers", forumID, &user.Nickname, &user.Email, &user.About, &user.Fullname)
-		if err != nil {
-			log.Println(err)
-		}
+		allFu = append(allFu, forumUser{&user.Nickname, &user.Email, &user.About, &user.Fullname})
 
 		rowsToCopy = append(rowsToCopy, []interface{}{post.Id, post.User_nick, post.Message, post.Created, post.Forum_slug, post.Thread_id, post.Parent, post.Parents, post.Parents[0]})
+	}
+
+	sort.Sort(allFu)
+
+	for _, i := range allFu {
+		_, err = tx.Exec("insertIntoForumUsers", forumID, i.userNickname, i.userEmail, i.userAbout, i.userFullname)
+		if err != nil {
+			log.Fatalln(err)
+		}
 	}
 
 	rowsCreated, err := tx.CopyFrom(pgx.Identifier{"post"}, []string{"id", "user_nick", "message", "created", "forum_slug", "thread_id", "parent", "parents", "main_parent"}, pgx.CopyFromRows(rowsToCopy))

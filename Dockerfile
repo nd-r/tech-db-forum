@@ -30,20 +30,20 @@ RUN echo "host all  all    0.0.0.0/0  md5" >>\
 
 RUN echo "listen_addresses='*'\n\
 synchronous_commit='off'\n\
-shared_buffers = 192MB\n\
+shared_buffers = 300MB\n\
 effective_cache_size = 384MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
 
-# RUN echo "log_duration = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
-# RUN echo "log_min_duration_statement = 2" >> /etc/postgresql/$PGVER/main/postgresql.conf
-# RUN echo "log_checkpoints = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
-# RUN echo "log_filename = 'postgresql-%Y-%m-%d_%H%M%S'" >> /etc/postgresql/$PGVER/main/postgresql.conf
-# RUN echo "log_directory = '/var/log/postgresql'" >> /etc/postgresql/$PGVER/main/postgresql.conf
-# RUN echo "log_destination = 'csvlog'" >> /etc/postgresql/$PGVER/main/postgresql.conf
-# RUN echo "log_destination = 'csvlog'" >> /etc/postgresql/$PGVER/main/postgresql.conf
-# RUN echo "logging_collector = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
-# RUN echo "log_disconnections = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
-# RUN echo "log_lock_waits = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
-# RUN echo "log_temp_files = 0 " >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_duration = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_min_duration_statement = 10" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_checkpoints = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_filename = 'postgresql-%Y-%m-%d_%H%M%S'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_directory = '/var/log/postgresql'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_destination = 'csvlog'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_destination = 'csvlog'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "logging_collector = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_disconnections = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_lock_waits = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "log_temp_files = 0 " >> /etc/postgresql/$PGVER/main/postgresql.conf
 
 EXPOSE 5432
 # EXPOSE 1111

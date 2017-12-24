@@ -120,11 +120,11 @@ CREATE TABLE post (
   forum_slug  TEXT      NOT NULL,
   thread_id   INTEGER   NOT NULL,
 
-  parent      INTEGER DEFAULT 0,
+  parent      INTEGER            DEFAULT 0,
   parents     BIGINT [] NOT NULL,
   main_parent BIGINT    NOT NULL,
 
-  is_edited BOOLEAN NOT NULL DEFAULT FALSE
+  is_edited   BOOLEAN   NOT NULL DEFAULT FALSE
 );
 
 CREATE UNIQUE INDEX posts_thread_id_index
@@ -144,11 +144,30 @@ CREATE UNIQUE INDEX posts_parents
   ON post (parent, thread_id, parents)
   WHERE parent = 0;
 
-CREATE INDEX parent_tree_1 on post (parent, thread_id, main_parent) WHERE parent = 0;
-CREATE INDEX parent_tree_2 on post (main_parent, parents);
-CREATE INDEX parent_tree_3 on post (main_parent, parents, id);
 
+-- CREATE UNIQUE INDEX parent_tree_1
+--   ON post (parent, thread_id, main_parent)
+--   WHERE parent = 0;
+--
+-- CREATE UNIQUE INDEX parent_tree_12
+--   ON post (parent, thread_id, id, main_parent)
+--   WHERE parent = 0;
+-- CREATE UNIQUE INDEX parent_tree_13
+--   ON post (parent, thread_id, id, main_parent)
+--   WHERE parent = 0;
+CREATE UNIQUE INDEX ON post (thread_id, id, parent, main_parent)
+  WHERE parent = 0;
 
+CREATE UNIQUE INDEX ON post(id, parents);
+
+CREATE UNIQUE INDEX parent_tree_2
+  ON post (main_parent, parents);
+
+CREATE UNIQUE INDEX parent_tree_3
+  ON post (main_parent, parents, id);
+  
+CREATE UNIQUE INDEX parent_tree_4
+  ON post (id, main_parent);
 
 --
 -- VOTE

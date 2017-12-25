@@ -69,7 +69,7 @@ RETURNING id,
 // CLAIMING
 //
 
-func PrepareVotesQureies(tx *pgx.Tx){
+func PrepareVotesQureies(tx *pgx.ConnPool){
 	if _, err := tx.Prepare("putVoteByThrID", putVoteByThrID); err != nil {
 		log.Fatalln(err)
 	}

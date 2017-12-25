@@ -38,15 +38,6 @@ RETURNING id,
 // CLAIMING
 //
 
-const generateNextIDs = `SELECT
-	array_agg(nextval('post_id_seq')::BIGINT)
-FROM generate_series(1,$1)`
-
-const selectParentAndParents = `SELECT thread_id,
-	parents
-FROM post
-WHERE id = $1`
-
 const getPostDetailsQuery = `SELECT id,
 	user_nick::TEXT,
 	message,
@@ -246,16 +237,8 @@ JOIN (
 ON p.main_parent=s.id
 ORDER BY p.parents`
 
-func PreparePostQueries(tx *pgx.Tx) {
+func PreparePostQueries(tx *pgx.ConnPool) {
 	if _, err := tx.Prepare("updatePostDetailsQuery", updatePostDetailsQuery); err != nil {
-		log.Fatalln(err)
-	}
-
-	if _, err := tx.Prepare("generateNextIDs", generateNextIDs); err != nil {
-		log.Fatalln(err)
-	}
-
-	if _, err := tx.Prepare("selectParentAndParents", selectParentAndParents); err != nil {
 		log.Fatalln(err)
 	}
 

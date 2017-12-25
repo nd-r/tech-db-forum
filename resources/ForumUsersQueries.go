@@ -65,7 +65,7 @@ WHERE forumid = $1 AND lower(nickname) < lower($2::TEXT)
 ORDER BY lower(nickname) DESC
 LIMIT $3::TEXT::INTEGER`
 
-func PrepareForumUsersQueries(tx *pgx.Tx) {
+func PrepareForumUsersQueries(tx *pgx.ConnPool) {
 	if _, err := tx.Prepare("insertIntoForumUsers", insertIntoForumUsers); err != nil {
 		log.Fatalln(err)
 	}

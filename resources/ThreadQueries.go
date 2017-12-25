@@ -11,38 +11,6 @@ Thread queries
  */
 
 //
-// INSERTING
-//
-const insertIntoThread = `INSERT INTO thread (slug,
-	title,
-	message,
-	forum_id,
-	forum_slug,
-	user_id,
-	user_nick,
-	created)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-ON CONFLICT DO NOTHING
-RETURNING id`
-
-//
-// UPDATING
-//
-
-const threadUpdateQuery = `UPDATE thread
-SET message = coalesce($1, message),
-	title = coalesce($2,title)
-WHERE id = $3
-RETURNING  id,
-	slug::TEXT,
-	title,
-	message,
-	forum_slug::TEXT,
-	user_nick::TEXT,
-	created,
-	votes_count `
-
-//
 // CLAIMING
 //
 
@@ -76,15 +44,6 @@ const checkThreadIdBySlug = `SELECT id
 FROM thread
 WHERE slug=$1`
 
-const getThreadIdAndForumSlugBySlug = `SELECT id,
-	forum_slug::TEXT
-FROM thread
-WHERE slug=$1`
-
-const getThreadIdAndForumSlugById = `SELECT id,
-	forum_slug::TEXT
-FROM thread
-WHERE id=$1`
 
 const gftLimit = `SELECT id,
 	slug::TEXT,
@@ -138,15 +97,7 @@ WHERE forum_id = $1 AND created <= $2::TEXT::TIMESTAMPTZ
 ORDER BY created DESC
 LIMIT $3::TEXT::INTEGER`
 
-func PrepateThreadQueries(tx *pgx.Tx) {
-	if _, err := tx.Prepare("insertIntoThread", insertIntoThread); err != nil {
-		log.Fatalln(err)
-	}
-
-	if _, err := tx.Prepare("threadUpdateQuery", threadUpdateQuery); err != nil {
-		log.Fatalln(err)
-	}
-
+func PrepateThreadQueries(tx *pgx.ConnPool) {
 	if _, err := tx.Prepare("getThreadById", getThreadById); err != nil {
 		log.Fatalln(err)
 	}
@@ -160,14 +111,6 @@ func PrepateThreadQueries(tx *pgx.Tx) {
 	}
 
 	if _, err := tx.Prepare("checkThreadIdBySlug", checkThreadIdBySlug); err != nil {
-		log.Fatalln(err)
-	}
-
-	if _, err := tx.Prepare("getThreadIdAndForumSlugBySlug", getThreadIdAndForumSlugBySlug); err != nil {
-		log.Fatalln(err)
-	}
-
-	if _, err := tx.Prepare("getThreadIdAndForumSlugById", getThreadIdAndForumSlugById); err != nil {
 		log.Fatalln(err)
 	}
 

@@ -13,7 +13,7 @@ var db *pgx.ConnPool
 const schema = "./resources/schema.sql"
 
 var pgConfig = pgx.ConnConfig{
-	Host:     "localhost",
+	Host:     "/var/run/postgresql/",
 	Port:     5432,
 	User:     "docker",
 	Password: "docker",
@@ -21,8 +21,8 @@ var pgConfig = pgx.ConnConfig{
 }
 
 // InitDBSchema initializes tables, indexes, etc.
-func InitDBSchema(conn *pgx.Conn) error {
-	tx, err := conn.Begin()
+func InitDBSchema() {
+	tx, err := db.Begin()
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -36,17 +36,17 @@ func InitDBSchema(conn *pgx.Conn) error {
 	schema := string(buf)
 
 	if _, err = tx.Exec(schema); err != nil {
-		log.Fatalln(err)
+		log.Println(err)
+		tx.Rollback()
 	}
-
-	resources.PrepareForumQueries(tx)
-	resources.PrepareForumUsersQueries(tx)
-	resources.PreparePostQueries(tx)
-	resources.PrepateThreadQueries(tx)
-	resources.PrepareUsersQueries(tx)
-	resources.PrepareVotesQureies(tx)
 	tx.Commit()
-	return nil
+
+	resources.PrepareForumQueries(db)
+	resources.PrepareForumUsersQueries(db)
+	resources.PreparePostQueries(db)
+	resources.PrepateThreadQueries(db)
+	resources.PrepareUsersQueries(db)
+	resources.PrepareVotesQureies(db)
 }
 
 // DBPoolInit initializes pgx db pool
@@ -55,7 +55,6 @@ func DBPoolInit() {
 	db, err = pgx.NewConnPool(pgx.ConnPoolConfig{
 		ConnConfig:     pgConfig,
 		MaxConnections: 50,
-		AfterConnect:   InitDBSchema,
 	})
 
 	if err != nil {

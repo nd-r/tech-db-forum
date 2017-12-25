@@ -8,13 +8,19 @@ import (
 	"github.com/nd-r/tech-db-forum/models"
 )
 
+const createUserQuery = `INSERT INTO users
+	(about, email, fullname, nickname)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT DO NOTHING`
+
 func CreateUser(user *models.User, nickname interface{}) (*models.UsersArr, error) {
 	tx, err := db.Begin()
 	if err != nil {
 		log.Fatalln(err)
 	}
+	defer tx.Rollback()
 
-	res, err := tx.Exec("createUserQuery", &user.About, &user.Email, &user.Fullname, &nickname)
+	res, err := tx.Exec(createUserQuery, &user.About, &user.Email, &user.Fullname, &nickname)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -64,6 +70,17 @@ func GetUserProfile(nickname interface{}) (*models.User, error) {
 	return &user, nil
 }
 
+const updateUserProfileQuery = `UPDATE users
+SET about = COALESCE($1, users.about),
+	email = COALESCE($2, users.email),
+	fullname = COALESCE($3, users.fullname)
+WHERE nickname=$4
+RETURNING
+	nickname::TEXT,
+	email::TEXT,
+	about,
+	fullname`
+
 func UpdateUserProfile(newData *models.UserUpd, nickname interface{}) (*models.User, error) {
 	tx, err := db.Begin()
 	if err != nil {
@@ -73,7 +90,7 @@ func UpdateUserProfile(newData *models.UserUpd, nickname interface{}) (*models.U
 
 	user := models.User{}
 
-	if err = tx.QueryRow("updateUserProfileQuery", newData.About, newData.Email, newData.Fullname, &nickname).
+	if err = tx.QueryRow(updateUserProfileQuery, newData.About, newData.Email, newData.Fullname, &nickname).
 		Scan(&user.Nickname, &user.Email, &user.About, &user.Fullname); err != nil {
 		if _, ok := err.(pgx.PgError); ok {
 			return nil, dberrors.ErrUserConflict

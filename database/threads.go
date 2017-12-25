@@ -28,9 +28,28 @@ func (fu forumUserArr) Len() int {
 func (fu forumUserArr) Swap(i, j int) {
 	fu[i], fu[j] = fu[j], fu[i]
 }
-func (fu forumUserArr) Less(i, j int) bool{
+func (fu forumUserArr) Less(i, j int) bool {
 	return *(fu[i].userNickname) < *(fu[j].userNickname)
 }
+
+const generateNextIDs = `SELECT
+	array_agg(nextval('post_id_seq')::BIGINT)
+FROM generate_series(1,$1)`
+
+const selectParentAndParents = `SELECT thread_id,
+	parents
+FROM post
+WHERE id = $1`
+
+const getThreadIdAndForumSlugBySlug = `SELECT id,
+	forum_slug::TEXT
+FROM thread
+WHERE slug=$1`
+
+const getThreadIdAndForumSlugById = `SELECT id,
+	forum_slug::TEXT
+FROM thread
+WHERE id=$1`
 
 func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostArr, error) {
 	tx, err := db.Begin()
@@ -45,12 +64,12 @@ func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostAr
 	//Claiming thread ID
 	threadID, err = strconv.Atoi(slugOrID.(string))
 	if err != nil {
-		if err = tx.QueryRow("getThreadIdAndForumSlugBySlug", slugOrID).Scan(&threadID, &forumSlug); err != nil {
+		if err = tx.QueryRow(getThreadIdAndForumSlugBySlug, slugOrID).Scan(&threadID, &forumSlug); err != nil {
 			log.Println(err)
 			return nil, dberrors.ErrThreadNotFound
 		}
 	} else {
-		if err = tx.QueryRow("getThreadIdAndForumSlugById", threadID).Scan(&threadID, &forumSlug); err != nil {
+		if err = tx.QueryRow(getThreadIdAndForumSlugById, threadID).Scan(&threadID, &forumSlug); err != nil {
 			log.Println(err)
 			return nil, dberrors.ErrThreadNotFound
 		}
@@ -67,7 +86,7 @@ func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostAr
 
 	//claiming ids for further posts
 	ids := make([]int64, 0, len(*postsArr))
-	if err = tx.QueryRow("generateNextIDs", len(*postsArr)).Scan(&ids); err != nil {
+	if err = tx.QueryRow(generateNextIDs, len(*postsArr)).Scan(&ids); err != nil {
 		log.Fatalln(err)
 	}
 
@@ -78,7 +97,7 @@ func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostAr
 		var parentThreadID int64
 
 		if post.Parent != 0 {
-			if err = tx.QueryRow("selectParentAndParents", post.Parent).
+			if err = tx.QueryRow(selectParentAndParents, post.Parent).
 				Scan(&parentThreadID, &post.Parents); err != nil {
 				return nil, dberrors.ErrPostsConflict
 			}
@@ -122,7 +141,7 @@ func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostAr
 		log.Println(err, rowsCreated)
 	}
 
-	_, err = tx.Exec("updateForumPosts", forumSlug, len(*postsArr))
+	_, err = tx.Exec(`UPDATE forum SET posts=posts+$2 WHERE slug=$1`, forumSlug, len(*postsArr))
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -189,6 +208,19 @@ func GetThread(slugOrID interface{}) (*models.Thread, error) {
 // 	"  JOIN sub ON sub.parents <@ p.parents" +
 // 	" ORDER BY p.parents $4;"
 
+const threadUpdateQuery = `UPDATE thread
+SET message = coalesce($1, message),
+	title = coalesce($2,title)
+WHERE id = $3
+RETURNING  id,
+	slug::TEXT,
+	title,
+	message,
+	forum_slug::TEXT,
+	user_nick::TEXT,
+	created,
+	votes_count `
+
 func UpdateThreadDetails(slugOrID *string, thrUpdate *models.ThreadUpdate) (*models.Thread, int) {
 	tx, err := db.Begin()
 	if err != nil {
@@ -199,7 +231,7 @@ func UpdateThreadDetails(slugOrID *string, thrUpdate *models.ThreadUpdate) (*mod
 	var ID int
 	var fs string
 	if ID, err = strconv.Atoi(*slugOrID); err != nil {
-		if err = tx.QueryRow("getThreadIdAndForumSlugBySlug", slugOrID).Scan(&ID, &fs);
+		if err = tx.QueryRow(getThreadIdAndForumSlugBySlug, slugOrID).Scan(&ID, &fs);
 			err != nil {
 			return nil, 404
 		}
@@ -207,7 +239,7 @@ func UpdateThreadDetails(slugOrID *string, thrUpdate *models.ThreadUpdate) (*mod
 
 	var thread models.Thread
 
-	if err = tx.QueryRow("threadUpdateQuery", thrUpdate.Message, thrUpdate.Title, ID).
+	if err = tx.QueryRow(threadUpdateQuery, thrUpdate.Message, thrUpdate.Title, ID).
 		Scan(&thread.Id, &thread.Slug, &thread.Title, &thread.Message, &thread.Forum_slug,
 		&thread.User_nick, &thread.Created, &thread.Votes_count);
 		err != nil {
@@ -324,7 +356,6 @@ func getThreadPostsTree(ID int, limit []byte, since []byte, desc []byte, tx *pgx
 		posts = append(posts, &post)
 	}
 	rows.Close()
-
 
 	return &posts, 200
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	//"runtime"
 	//"sync"
 
 	"github.com/nd-r/tech-db-forum/database"
@@ -15,7 +14,6 @@ import (
 )
 
 func main() {
-	//runtime.GOMAXPROCS(8)
 	log.SetFlags(log.Llongfile)
 
 	database.DBPoolInit()

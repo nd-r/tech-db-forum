@@ -36,7 +36,8 @@ func InitDBSchema() {
 	schema := string(buf)
 
 	if _, err = tx.Exec(schema); err != nil {
-		log.Fatalln(err)
+		log.Println(err)
+		tx.Rollback()
 	}
 	tx.Commit()
 

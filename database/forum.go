@@ -8,6 +8,14 @@ import (
 	"github.com/nd-r/tech-db-forum/models"
 )
 
+const createForumQuery = `INSERT INTO forum
+(slug, title, moderator)
+VALUES (
+	$1,
+	$2,
+	(SELECT nickname FROM users WHERE nickname=$3))
+RETURNING moderator::TEXT`
+
 func CreateForum(forum *models.Forum) (*models.Forum, error) {
 	tx, err := db.Begin()
 	if err != nil {
@@ -24,7 +32,7 @@ func CreateForum(forum *models.Forum) (*models.Forum, error) {
 		return &forumExisting, dberrors.ErrForumExists
 	}
 
-	if err := tx.QueryRow("createForumQuery", &forum.Slug, &forum.Title, &forum.Moderator).Scan(&forum.Moderator); err != nil {
+	if err := tx.QueryRow(createForumQuery, &forum.Slug, &forum.Title, &forum.Moderator).Scan(&forum.Moderator); err != nil {
 		tx.Rollback()
 		return nil, dberrors.ErrUserNotFound
 	}
@@ -52,6 +60,33 @@ func GetForumDetails(slug interface{}) (*models.Forum, error) {
 	return &forum, err
 }
 
+const getForumIDAndSlugBySlug = `SELECT
+	id,
+	slug::text
+FROM forum
+WHERE slug = $1`
+
+const insertIntoThread = `INSERT INTO thread (slug,
+	title,
+	message,
+	forum_id,
+	forum_slug,
+	user_id,
+	user_nick,
+	created)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+ON CONFLICT DO NOTHING
+RETURNING id`
+
+const claimUserInfo = `SELECT
+	id,
+	nickname::text,
+	email::text,
+	about,
+	fullname
+FROM users
+WHERE nickname = $1`
+
 func CreateThread(forumSlug interface{}, threadDetails *models.Thread) (*models.Thread, error) {
 	tx, err := db.Begin()
 	if err != nil {
@@ -63,7 +98,7 @@ func CreateThread(forumSlug interface{}, threadDetails *models.Thread) (*models.
 	var userID, forumID int
 	var realForumSlug string
 
-	if err = tx.QueryRow("claimUserInfo", &threadDetails.User_nick).
+	if err = tx.QueryRow(claimUserInfo, &threadDetails.User_nick).
 		Scan(&userID, &user.Nickname, &user.Email, &user.About, &user.Fullname); err != nil {
 		log.Println(err, *forumSlug.(*interface{}))
 		tx.Rollback()
@@ -71,7 +106,7 @@ func CreateThread(forumSlug interface{}, threadDetails *models.Thread) (*models.
 		return nil, dberrors.ErrUserNotFound
 	}
 
-	if err = tx.QueryRow("getForumIDAndSlugBySlug", &forumSlug).
+	if err = tx.QueryRow(getForumIDAndSlugBySlug, &forumSlug).
 		Scan(&forumID, &realForumSlug); err != nil {
 		log.Println(err)
 		tx.Rollback()
@@ -79,7 +114,7 @@ func CreateThread(forumSlug interface{}, threadDetails *models.Thread) (*models.
 		return nil, dberrors.ErrForumNotFound
 	}
 
-	if err = tx.QueryRow("insertIntoThread", threadDetails.Slug, &threadDetails.Title,
+	if err = tx.QueryRow(insertIntoThread, threadDetails.Slug, &threadDetails.Title,
 		&threadDetails.Message, forumID, &realForumSlug, userID, &user.Nickname, &threadDetails.Created).
 		Scan(&threadDetails.Id); err != nil {
 

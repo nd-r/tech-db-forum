@@ -48,6 +48,8 @@ CREATE UNIQUE INDEX forum_slug_index
 
 CREATE UNIQUE INDEX forum_slug_id_index
   ON forum (slug, id);
+
+CREATE UNIQUE INDEX on forum (slug, id, title, moderator, threads, posts);
 --
 -- THREAD
 --

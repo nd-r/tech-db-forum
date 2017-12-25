@@ -1,20 +1,24 @@
 package database
 
 import (
+	"log"
+
 	"github.com/jackc/pgx"
 	"github.com/nd-r/tech-db-forum/dberrors"
 	"github.com/nd-r/tech-db-forum/models"
-	"log"
 )
 
-const createUserQuery = "INSERT INTO users (about, email, fullname, nickname) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING"
-const selectUsrByNickOrEmailQuery = "SELECT nickname::TEXT, email::TEXT, about, fullname FROM users WHERE nickname=$1 OR email=$2"
+const createUserQuery = `INSERT INTO users
+	(about, email, fullname, nickname)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT DO NOTHING`
 
 func CreateUser(user *models.User, nickname interface{}) (*models.UsersArr, error) {
 	tx, err := db.Begin()
 	if err != nil {
 		log.Fatalln(err)
 	}
+	defer tx.Rollback()
 
 	res, err := tx.Exec(createUserQuery, &user.About, &user.Email, &user.Fullname, &nickname)
 	if err != nil {
@@ -24,7 +28,7 @@ func CreateUser(user *models.User, nickname interface{}) (*models.UsersArr, erro
 	if res.RowsAffected() == 0 {
 		existingUsers := models.UsersArr{}
 
-		rows, err := tx.Query(selectUsrByNickOrEmailQuery, &nickname, &user.Email)
+		rows, err := tx.Query("selectUsrByNickOrEmailQuery", &nickname, &user.Email)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -48,8 +52,6 @@ func CreateUser(user *models.User, nickname interface{}) (*models.UsersArr, erro
 	return nil, nil
 }
 
-const getUserProfileQuery = "SELECT nickname::TEXT, email::TEXT, about, fullname FROM users WHERE nickname = $1"
-
 func GetUserProfile(nickname interface{}) (*models.User, error) {
 	tx, err := db.Begin()
 	if err != nil {
@@ -68,7 +70,16 @@ func GetUserProfile(nickname interface{}) (*models.User, error) {
 	return &user, nil
 }
 
-const updateUserProfileQuery = "UPDATE users SET about = COALESCE($1, users.about), email = COALESCE($2, users.email), fullname = COALESCE($3, users.fullname) WHERE nickname=$4 RETURNING nickname::TEXT, email::TEXT, about, fullname"
+const updateUserProfileQuery = `UPDATE users
+SET about = COALESCE($1, users.about),
+	email = COALESCE($2, users.email),
+	fullname = COALESCE($3, users.fullname)
+WHERE nickname=$4
+RETURNING
+	nickname::TEXT,
+	email::TEXT,
+	about,
+	fullname`
 
 func UpdateUserProfile(newData *models.UserUpd, nickname interface{}) (*models.User, error) {
 	tx, err := db.Begin()

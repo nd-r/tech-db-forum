@@ -39,8 +39,9 @@ host all  all    0.0.0.0/0  md5" >>\
 
 RUN echo "unix_socket_directories = '/var/run/postgresql/'\n\
 synchronous_commit='off'\n\
-shared_buffers = 128MB\n\
-effective_cache_size = 384MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
+shared_buffers = 512MB\n\
+effective_cache_size = 1024MB\n\
+wal_writer_delay = 2000ms\n" >> /etc/postgresql/$PGVER/main/postgresql.conf
 
 #RUN echo "log_duration = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
 #RUN echo "log_min_duration_statement = 10" >> /etc/postgresql/$PGVER/main/postgresql.conf

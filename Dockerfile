@@ -1,19 +1,21 @@
-FROM ubuntu:17.04
+FROM ubuntu:16.04
 
 LABEL author="Andrey Kuchin"
-
+RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main" > /etc/apt/sources.list.d/postgresql.list
+RUN apt-get -y update
+RUN apt-get install -y wget
+RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
 # Обновление списка пакетов
 RUN apt-get -y update
-
 #
 # Установка postgresql
 #
-ENV PGVER 9.6
-RUN apt-get install -y postgresql-$PGVER wget git
+ENV PGVER 10
+RUN apt install -y postgresql-$PGVER git
 
-RUN wget https://storage.googleapis.com/golang/go1.9.1.linux-amd64.tar.gz
+RUN wget https://storage.googleapis.com/golang/go1.9.2.linux-amd64.tar.gz
 
-RUN tar -C /usr/local -xzf go1.9.1.linux-amd64.tar.gz && \
+RUN tar -C /usr/local -xzf go1.9.2.linux-amd64.tar.gz && \
     mkdir go && mkdir go/src && mkdir go/bin && mkdir go/pkg
 
 # Run the rest of the commands as the ``postgres``

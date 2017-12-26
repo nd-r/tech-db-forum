@@ -29,6 +29,5 @@ func main() {
 	//wg.Add(1)
 	//go fasthttp.ListenAndServe(":5000", router.Handler)
 	//wg.Wait()
-	go database.Vacuum()
 	fasthttp.ListenAndServe(":5000", router.Handler)
 }

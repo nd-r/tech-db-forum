@@ -1,6 +1,7 @@
 package database
 
 import (
+	"bytes"
 	"log"
 
 	"github.com/jackc/pgx"
@@ -32,7 +33,8 @@ func CreateForum(forum *models.Forum) (*models.Forum, error) {
 		return &forumExisting, dberrors.ErrForumExists
 	}
 
-	if err := tx.QueryRow(createForumQuery, &forum.Slug, &forum.Title, &forum.Moderator).Scan(&forum.Moderator); err != nil {
+	if err := tx.QueryRow(createForumQuery, &forum.Slug, &forum.Title, &forum.Moderator).
+		Scan(&forum.Moderator); err != nil {
 		tx.Rollback()
 		return nil, dberrors.ErrUserNotFound
 	}
@@ -42,21 +44,14 @@ func CreateForum(forum *models.Forum) (*models.Forum, error) {
 }
 
 func GetForumDetails(slug interface{}) (*models.Forum, error) {
-	tx, err := db.Begin()
-	if err != nil {
-		log.Fatalln(err)
-	}
-
 	forum := models.Forum{}
-	err = tx.QueryRow("selectForumQuery", &slug).
+	err := db.QueryRow("selectForumQuery", &slug).
 		Scan(&forum.Slug, &forum.Title, &forum.Posts, &forum.Threads, &forum.Moderator)
 
 	if err != nil {
-		tx.Rollback()
 		return nil, err
 	}
 
-	tx.Commit()
 	return &forum, err
 }
 
@@ -146,63 +141,24 @@ func CreateThread(forumSlug interface{}, threadDetails *models.Thread) (*models.
 }
 
 func GetForumThreads(slug interface{}, limit []byte, since []byte, desc []byte) (*models.TreadArr, error) {
-	tx, err := db.Begin()
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer tx.Commit()
-
-	isDesc := string(desc) == "true"
-
-	var forumID int
-
-	if err = tx.QueryRow("getForumIDBySlug", &slug).Scan(&forumID); err != nil {
-		tx.Rollback()
-		return nil, dberrors.ErrForumNotFound
-	}
-
+	var err error
 	var rows *pgx.Rows
 
-	if limit == nil {
-		if since == nil {
-			if isDesc {
-				// no limit, no since, DESC
-				rows, err = tx.Query("gftLimitDesc", forumID, nil)
-			} else {
-				// no limit, no since, ASC
-				rows, err = tx.Query("gftLimit", forumID, nil)
-			}
+	if since == nil {
+		if bytes.Equal([]byte("true"), desc) {
+			rows, err = db.Query("gftLimitDesc", slug, limit)
 		} else {
-			if isDesc {
-				// no limit, yes since, DESC
-				rows, err = tx.Query("gftCreatedLimitDesc", forumID, since, nil)
-			} else {
-				// no limit, yes since, ASC
-				rows, err = tx.Query("gftCreatedLimit", forumID, since, nil)
-			}
+			rows, err = db.Query("gftLimit", slug, limit)
 		}
 	} else {
-		if since == nil {
-			if isDesc {
-				// yes limit, no since, DESC
-				rows, err = tx.Query("gftLimitDesc", forumID, limit)
-			} else {
-				// yse limit, no since, ASC
-				rows, err = tx.Query("gftLimit", forumID, limit)
-			}
+		if bytes.Equal([]byte("true"), desc) {
+			rows, err = db.Query("gftCreatedLimitDesc", slug, since, limit)
 		} else {
-			if isDesc {
-				// yes limit, yes since, DESC
-				rows, err = tx.Query("gftCreatedLimitDesc", forumID, since, limit)
-			} else {
-				// yes limit, yes since, ASC
-				rows, err = tx.Query("gftCreatedLimit", forumID, since, limit)
-			}
+			rows, err = db.Query("gftCreatedLimit", slug, since, limit)
 		}
 	}
 
 	if err != nil {
-		tx.Rollback()
 		log.Fatalln(err)
 	}
 
@@ -213,76 +169,44 @@ func GetForumThreads(slug interface{}, limit []byte, since []byte, desc []byte) 
 
 		if err = rows.Scan(&thread.Id, &thread.Slug, &thread.Title, &thread.Message,
 			&thread.Forum_slug, &thread.User_nick, &thread.Created, &thread.Votes_count); err != nil {
-			tx.Rollback()
 			log.Fatalln(err)
 		}
 
 		threads = append(threads, &thread)
 	}
-
 	rows.Close()
-	tx.Commit()
+
+	if len(threads) == 0 {
+		var forumID int
+		if err = db.QueryRow("getForumIDBySlug", &slug).Scan(&forumID); err != nil {
+			return nil, dberrors.ErrForumNotFound
+		}
+	}
+
 	return &threads, nil
 }
 
 func GetForumUsers(slug interface{}, limit []byte, since []byte, desc []byte) (*models.UsersArr, error) {
-	tx, err := db.Begin()
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer tx.Commit()
+	var err error
 
-	var forumID int
-	if err = tx.QueryRow("getForumIDBySlug", &slug).Scan(&forumID); err != nil {
-		tx.Rollback()
-		return nil, dberrors.ErrForumNotFound
-	}
-
-	isDesc := string(desc) == "true"
 	var rows *pgx.Rows
 
-	if limit == nil {
-		if since == nil {
-			if isDesc {
-				// no limit, no since, desc
-				rows, err = tx.Query("gfuLimitDesc", forumID, nil)
-			} else {
-				// no limit, no since, asc
-				rows, err = tx.Query("gfuLimit", forumID, nil)
-			}
+	if since == nil {
+		if bytes.Equal([]byte("true"), desc) {
+			rows, err = db.Query("gfuLimitDesc", slug, limit)
 		} else {
-			if isDesc {
-				// no limit, yes since, desc
-				rows, err = tx.Query("gfuSinceLimitDesc", forumID, since, nil)
-			} else {
-				// no limit, yes since, asc
-				rows, err = tx.Query("gfuSinceLimit", forumID, since, nil)
-			}
+			rows, err = db.Query("gfuLimit", slug, limit)
 		}
 	} else {
-		if since == nil {
-			if isDesc {
-				// yes limit, no since, desc
-				rows, err = tx.Query("gfuLimitDesc", forumID, limit)
-			} else {
-				// yes limit, no since, asc
-				rows, err = tx.Query("gfuLimit", forumID, limit)
-			}
+		if bytes.Equal([]byte("true"), desc) {
+			rows, err = db.Query("gfuSinceLimitDesc", slug, since, limit)
 		} else {
-			if isDesc {
-				// yes limit, yes since, desc
-				rows, err = tx.Query("gfuSinceLimitDesc", forumID, since, limit)
-			} else {
-				// yes limit, yes since, asc
-				rows, err = tx.Query("gfuSinceLimit", forumID, since, limit)
-			}
+			rows, err = db.Query("gfuSinceLimit", slug, since, limit)
 		}
 	}
 
 	if err != nil {
 		rows.Close()
-		tx.Rollback()
-		log.Fatalln(err, limit == nil, since == nil, isDesc)
 	}
 	var users models.UsersArr
 
@@ -290,13 +214,19 @@ func GetForumUsers(slug interface{}, limit []byte, since []byte, desc []byte) (*
 		user := models.User{}
 		if err = rows.Scan(&user.Nickname, &user.Email, &user.About, &user.Fullname); err != nil {
 			rows.Close()
-			tx.Rollback()
 			log.Fatalln(err)
 		}
 		users = append(users, &user)
 	}
 
 	rows.Close()
-	tx.Commit()
+
+	if len(users) == 0 {
+		var forumID int
+		if err = db.QueryRow("getForumIDBySlug", &slug).Scan(&forumID); err != nil {
+			return nil, dberrors.ErrForumNotFound
+		}
+	}
+
 	return &users, nil
 }

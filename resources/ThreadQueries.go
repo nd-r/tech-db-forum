@@ -54,7 +54,7 @@ const gftLimit = `SELECT id,
 	created,
 	votes_count
 FROM thread
-WHERE forum_id = $1
+WHERE forum_id = (SELECT id FROM forum WHERE slug=$1)
 ORDER BY created
 LIMIT $2::TEXT::INTEGER`
 
@@ -67,7 +67,7 @@ const gftLimitDesc = `SELECT id,
 	created,
 	votes_count
 FROM thread
-WHERE forum_id = $1
+WHERE forum_id = (SELECT id FROM forum WHERE slug=$1)
 ORDER BY created DESC
 LIMIT $2::TEXT::INTEGER`
 
@@ -80,7 +80,7 @@ const gftCreatedLimit = `SELECT id,
 	created,
 	votes_count
 FROM thread
-WHERE forum_id = $1 AND created >= $2::TEXT::TIMESTAMPTZ
+WHERE forum_id = (SELECT id FROM forum WHERE slug=$1) AND created >= $2::TEXT::TIMESTAMPTZ
 ORDER BY created
 LIMIT $3::TEXT::INTEGER`
 
@@ -93,7 +93,7 @@ const gftCreatedLimitDesc = `SELECT id,
 	created,
 	votes_count
 FROM thread
-WHERE forum_id = $1 AND created <= $2::TEXT::TIMESTAMPTZ
+WHERE forum_id = (SELECT id FROM forum WHERE slug=$1) AND created <= $2::TEXT::TIMESTAMPTZ
 ORDER BY created DESC
 LIMIT $3::TEXT::INTEGER`
 

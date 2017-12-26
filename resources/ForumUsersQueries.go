@@ -34,7 +34,7 @@ const gfuLimit = `SELECT nickname::TEXT,
 	about,
 	fullname
 FROM forum_users
-WHERE forumid = $1
+WHERE forumid = (SELECT id FROM forum WHERE slug=$1)
 ORDER BY lower(nickname)
 LIMIT $2::TEXT::INTEGER`
 
@@ -43,7 +43,7 @@ const gfuLimitDesc = `SELECT nickname::TEXT,
 	about,
 	fullname
 FROM forum_users
-WHERE forumid = $1
+WHERE forumid = (SELECT id FROM forum WHERE slug=$1)
 ORDER BY lower(nickname) DESC
 LIMIT $2::TEXT::INTEGER`
 
@@ -52,7 +52,7 @@ const gfuSinceLimit = `SELECT nickname::TEXT,
 	about,
 	fullname
 FROM forum_users
-WHERE forumid = $1 AND lower(nickname) > lower($2::TEXT)
+WHERE forumid = (SELECT id FROM forum WHERE slug=$1) AND lower(nickname) > lower($2::TEXT)
 ORDER BY lower(nickname)
 LIMIT $3::TEXT::INTEGER`
 
@@ -61,7 +61,7 @@ const gfuSinceLimitDesc = `SELECT nickname::TEXT,
 	about,
 	fullname
 FROM forum_users
-WHERE forumid = $1 AND lower(nickname) < lower($2::TEXT)
+WHERE forumid = (SELECT id FROM forum WHERE slug=$1) AND lower(nickname) < lower($2::TEXT)
 ORDER BY lower(nickname) DESC
 LIMIT $3::TEXT::INTEGER`
 

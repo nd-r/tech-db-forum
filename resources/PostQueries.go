@@ -18,21 +18,6 @@ Post queries
 // UPDATING
 //
 
-const updatePostDetailsQuery = `UPDATE post
-SET message=coalesce($2,message),
-	is_edited=(CASE WHEN $2 IS NULL OR $2 = message
-		THEN FALSE
-		ELSE TRUE
-		END)
-WHERE ID=$1
-RETURNING id,
-	user_nick::TEXT,
-	message,
-	created,
-	forum_slug::TEXT,
-	thread_id,
-	is_edited,
-	parent`
 
 //
 // CLAIMING
@@ -238,10 +223,6 @@ ON p.main_parent=s.id
 ORDER BY p.parents`
 
 func PreparePostQueries(tx *pgx.ConnPool) {
-	if _, err := tx.Prepare("updatePostDetailsQuery", updatePostDetailsQuery); err != nil {
-		log.Fatalln(err)
-	}
-
 	if _, err := tx.Prepare("getPostDetailsQuery", getPostDetailsQuery); err != nil {
 		log.Fatalln(err)
 	}

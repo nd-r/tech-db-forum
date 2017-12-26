@@ -53,20 +53,13 @@ func CreateUser(user *models.User, nickname interface{}) (*models.UsersArr, erro
 }
 
 func GetUserProfile(nickname interface{}) (*models.User, error) {
-	tx, err := db.Begin()
-	if err != nil {
-		log.Fatalln(err)
-	}
-
 	user := models.User{}
 
-	if err = tx.QueryRow("getUserProfileQuery", &nickname).
+	if err := db.QueryRow("getUserProfileQuery", &nickname).
 		Scan(&user.Nickname, &user.Email, &user.About, &user.Fullname); err != nil {
-		tx.Rollback()
 		return nil, dberrors.ErrUserNotFound
 	}
 
-	tx.Commit()
 	return &user, nil
 }
 

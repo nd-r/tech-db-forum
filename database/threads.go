@@ -178,35 +178,19 @@ func PutVote(slugOrID interface{}, vote *models.Vote) (*models.Thread, error) {
 }
 
 func GetThread(slugOrID interface{}) (*models.Thread, error) {
-	tx, err := db.Begin()
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer tx.Commit()
-
 	thread := models.Thread{}
 
-	_, err = strconv.Atoi(slugOrID.(string))
+	_, err := strconv.Atoi(slugOrID.(string))
 
 	if err != nil {
-		err = tx.QueryRow("getThreadBySlug", slugOrID).
+		err = db.QueryRow("getThreadBySlug", slugOrID).
 			Scan(&thread.Id, &thread.Slug, &thread.Title, &thread.Message, &thread.Forum_slug, &thread.User_nick, &thread.Created, &thread.Votes_count)
 		return &thread, err
 	}
 
-	err = tx.QueryRow("getThreadById", slugOrID).Scan(&thread.Id, &thread.Slug, &thread.Title, &thread.Message, &thread.Forum_slug, &thread.User_nick, &thread.Created, &thread.Votes_count)
+	err = db.QueryRow("getThreadById", slugOrID).Scan(&thread.Id, &thread.Slug, &thread.Title, &thread.Message, &thread.Forum_slug, &thread.User_nick, &thread.Created, &thread.Votes_count)
 	return &thread, err
 }
-
-// const getPostsParentTree = "WITH sub AS (" +
-// 	"SELECT parents FROM post" +
-// 	" WHERE parent=0 AND thread_id = $1 AND parents > COALESCE((SELECT parents FROM post WHERE id = $3::TEXT::INTEGER), '{0}')" +
-// 	" ORDER BY post.parents $4" +
-// 	" LIMIT $2::TEXT::INTEGER)" +
-// 	" SELECT p.id, p.user_nick::TEXT, p.message, p.created, p.forum_slug::TEXT, p.thread_id, p.is_edited, p.parent" +
-// 	" FROM post p" +
-// 	"  JOIN sub ON sub.parents <@ p.parents" +
-// 	" ORDER BY p.parents $4;"
 
 const threadUpdateQuery = `UPDATE thread
 SET message = coalesce($1, message),
@@ -248,36 +232,36 @@ func UpdateThreadDetails(slugOrID *string, thrUpdate *models.ThreadUpdate) (*mod
 	return &thread, 200
 }
 
-func getThreadPostsFlat(ID int, limit []byte, since []byte, desc []byte, tx *pgx.Tx) (*models.PostArr, int) {
+func getThreadPostsFlat(ID int, limit []byte, since []byte, desc []byte) (*models.PostArr, int) {
 	var err error
 	var rows *pgx.Rows
 
 	if since != nil {
 		if limit != nil {
 			if bytes.Equal(desc, []byte("true")) {
-				rows, err = tx.Query("getPostsFlatSinceLimitDesc", ID, limit, since)
+				rows, err = db.Query("getPostsFlatSinceLimitDesc", ID, limit, since)
 			} else {
-				rows, err = tx.Query("getPostsFlatSinceLimit", ID, limit, since)
+				rows, err = db.Query("getPostsFlatSinceLimit", ID, limit, since)
 			}
 		} else {
 			if bytes.Equal(desc, []byte("true")) {
-				rows, err = tx.Query("getPostsFlatSinceLimitDesc", ID, nil, since)
+				rows, err = db.Query("getPostsFlatSinceLimitDesc", ID, nil, since)
 			} else {
-				rows, err = tx.Query("getPostsFlatSinceLimit", ID, nil, since)
+				rows, err = db.Query("getPostsFlatSinceLimit", ID, nil, since)
 			}
 		}
 	} else {
 		if limit != nil {
 			if bytes.Equal(desc, []byte("true")) {
-				rows, err = tx.Query("getPostsFlatLimitDesc", ID, limit)
+				rows, err = db.Query("getPostsFlatLimitDesc", ID, limit)
 			} else {
-				rows, err = tx.Query("getPostsFlatLimit", ID, limit)
+				rows, err = db.Query("getPostsFlatLimit", ID, limit)
 			}
 		} else {
 			if bytes.Equal(desc, []byte("true")) {
-				rows, err = tx.Query("getPostsFlatLimitDesc", ID, nil)
+				rows, err = db.Query("getPostsFlatLimitDesc", ID, nil)
 			} else {
-				rows, err = tx.Query("getPostsFlatLimit", ID, nil)
+				rows, err = db.Query("getPostsFlatLimit", ID, nil)
 			}
 		}
 	}
@@ -304,36 +288,36 @@ func getThreadPostsFlat(ID int, limit []byte, since []byte, desc []byte, tx *pgx
 	return &posts, 200
 }
 
-func getThreadPostsTree(ID int, limit []byte, since []byte, desc []byte, tx *pgx.Tx) (*models.PostArr, int) {
+func getThreadPostsTree(ID int, limit []byte, since []byte, desc []byte) (*models.PostArr, int) {
 	var err error
 	var rows *pgx.Rows
 
 	if since != nil {
 		if limit != nil {
 			if bytes.Equal(desc, []byte("true")) {
-				rows, err = tx.Query("getPostsTreeSinceLimitDesc", ID, limit, since)
+				rows, err = db.Query("getPostsTreeSinceLimitDesc", ID, limit, since)
 			} else {
-				rows, err = tx.Query("getPostsTreeSinceLimit", ID, limit, since)
+				rows, err = db.Query("getPostsTreeSinceLimit", ID, limit, since)
 			}
 		} else {
 			if bytes.Equal(desc, []byte("true")) {
-				rows, err = tx.Query("getPostsTreeSinceLimitDesc", ID, nil, since)
+				rows, err = db.Query("getPostsTreeSinceLimitDesc", ID, nil, since)
 			} else {
-				rows, err = tx.Query("getPostsTreeSinceLimit", ID, nil, since)
+				rows, err = db.Query("getPostsTreeSinceLimit", ID, nil, since)
 			}
 		}
 	} else {
 		if limit != nil {
 			if bytes.Equal(desc, []byte("true")) {
-				rows, err = tx.Query("getPostsTreeLimitDesc", ID, limit)
+				rows, err = db.Query("getPostsTreeLimitDesc", ID, limit)
 			} else {
-				rows, err = tx.Query("getPostsTreeLimit", ID, limit)
+				rows, err = db.Query("getPostsTreeLimit", ID, limit)
 			}
 		} else {
 			if bytes.Equal(desc, []byte("true")) {
-				rows, err = tx.Query("getPostsTreeLimitDesc", ID, nil)
+				rows, err = db.Query("getPostsTreeLimitDesc", ID, nil)
 			} else {
-				rows, err = tx.Query("getPostsTreeLimit", ID, nil)
+				rows, err = db.Query("getPostsTreeLimit", ID, nil)
 			}
 		}
 	}
@@ -360,36 +344,36 @@ func getThreadPostsTree(ID int, limit []byte, since []byte, desc []byte, tx *pgx
 	return &posts, 200
 }
 
-func getThreadPostsParentTree(ID int, limit []byte, since []byte, desc []byte, tx *pgx.Tx) (*models.PostArr, int) {
+func getThreadPostsParentTree(ID int, limit []byte, since []byte, desc []byte) (*models.PostArr, int) {
 	var err error
 	var rows *pgx.Rows
 
 	if since != nil {
 		if limit != nil {
 			if bytes.Equal(desc, []byte("true")) {
-				rows, err = tx.Query("getPostsParentTreeSinceLimitDesc", ID, limit, since)
+				rows, err = db.Query("getPostsParentTreeSinceLimitDesc", ID, limit, since)
 			} else {
-				rows, err = tx.Query("getPostsParentTreeSinceLimit", ID, limit, since)
+				rows, err = db.Query("getPostsParentTreeSinceLimit", ID, limit, since)
 			}
 		} else {
 			if bytes.Equal(desc, []byte("true")) {
-				rows, err = tx.Query("getPostsParentTreeSinceLimitDesc", ID, nil, since)
+				rows, err = db.Query("getPostsParentTreeSinceLimitDesc", ID, nil, since)
 			} else {
-				rows, err = tx.Query("getPostsParentTreeSinceLimit", ID, nil, since)
+				rows, err = db.Query("getPostsParentTreeSinceLimit", ID, nil, since)
 			}
 		}
 	} else {
 		if limit != nil {
 			if bytes.Equal(desc, []byte("true")) {
-				rows, err = tx.Query("getPostsParentTreeLimitDesc", ID, limit)
+				rows, err = db.Query("getPostsParentTreeLimitDesc", ID, limit)
 			} else {
-				rows, err = tx.Query("getPostsParentTreeLimit", ID, limit)
+				rows, err = db.Query("getPostsParentTreeLimit", ID, limit)
 			}
 		} else {
 			if bytes.Equal(desc, []byte("true")) {
-				rows, err = tx.Query("getPostsParentTreeLimitDesc", ID, nil)
+				rows, err = db.Query("getPostsParentTreeLimitDesc", ID, nil)
 			} else {
-				rows, err = tx.Query("getPostsParentTreeLimit", ID, nil)
+				rows, err = db.Query("getPostsParentTreeLimit", ID, nil)
 			}
 		}
 	}
@@ -417,29 +401,24 @@ func getThreadPostsParentTree(ID int, limit []byte, since []byte, desc []byte, t
 }
 
 func GetThreadPosts(slugOrID *string, limit []byte, since []byte, sort []byte, desc []byte) (*models.PostArr, int) {
-	tx, err := db.Begin()
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer tx.Commit()
-
 	var ID int
+	var err error
 	if _, err = strconv.Atoi(*slugOrID); err != nil {
-		if err = tx.QueryRow("checkThreadIdBySlug", slugOrID).Scan(&ID); err != nil {
+		if err = db.QueryRow("checkThreadIdBySlug", slugOrID).Scan(&ID); err != nil {
 			return nil, 404
 		}
 	} else {
-		if err = tx.QueryRow("checkThreadIdById", slugOrID).Scan(&ID); err != nil {
+		if err = db.QueryRow("checkThreadIdById", slugOrID).Scan(&ID); err != nil {
 			return nil, 404
 		}
 	}
 
 	switch true {
 	case bytes.Equal([]byte("tree"), sort):
-		return getThreadPostsTree(ID, limit, since, desc, tx)
+		return getThreadPostsTree(ID, limit, since, desc)
 	case bytes.Equal([]byte("parent_tree"), sort):
-		return getThreadPostsParentTree(ID, limit, since, desc, tx)
+		return getThreadPostsParentTree(ID, limit, since, desc)
 	default:
-		return getThreadPostsFlat(ID, limit, since, desc, tx)
+		return getThreadPostsFlat(ID, limit, since, desc)
 	}
 }

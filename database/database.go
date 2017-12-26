@@ -3,6 +3,7 @@ package database
 import (
 	"io/ioutil"
 	"log"
+	"time"
 
 	"github.com/jackc/pgx"
 	"github.com/nd-r/tech-db-forum/resources"
@@ -13,11 +14,21 @@ var db *pgx.ConnPool
 const schema = "./resources/schema.sql"
 
 var pgConfig = pgx.ConnConfig{
-	Host:     "/var/run/postgresql/",
+	Host:     "localhost",
 	Port:     5432,
 	User:     "docker",
 	Password: "docker",
 	Database: "docker",
+}
+
+func VacuumAnalyze() {
+	time.Sleep(30 * time.Second)
+	log.Println(`VACUUMED`)
+	db.Exec("VACUUM ANALYZE")
+}
+
+func GoVacuum() {
+	go VacuumAnalyze()
 }
 
 // InitDBSchema initializes tables, indexes, etc.

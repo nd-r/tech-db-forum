@@ -14,7 +14,7 @@ var db *pgx.ConnPool
 const schema = "./resources/schema.sql"
 
 var pgConfig = pgx.ConnConfig{
-	Host:     "localhost",
+	Host:     "/var/run/postgresql/",
 	Port:     5432,
 	User:     "docker",
 	Password: "docker",
@@ -22,7 +22,7 @@ var pgConfig = pgx.ConnConfig{
 }
 
 func VacuumAnalyze() {
-	time.Sleep(30 * time.Second)
+	time.Sleep(15 * time.Second)
 	log.Println(`VACUUMED`)
 	db.Exec("VACUUM ANALYZE")
 }

@@ -3,7 +3,6 @@ package database
 import (
 	"io/ioutil"
 	"log"
-	"time"
 
 	"github.com/jackc/pgx"
 	"github.com/nd-r/tech-db-forum/resources"

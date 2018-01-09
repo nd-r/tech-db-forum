@@ -21,15 +21,7 @@ var pgConfig = pgx.ConnConfig{
 	Database: "docker",
 }
 
-func VacuumAnalyze() {
-	time.Sleep(15 * time.Second)
-	log.Println(`VACUUMED`)
-	db.Exec("VACUUM ANALYZE")
-}
 
-func GoVacuum() {
-	go VacuumAnalyze()
-}
 
 // InitDBSchema initializes tables, indexes, etc.
 func InitDBSchema() {

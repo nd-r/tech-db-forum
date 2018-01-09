@@ -90,9 +90,6 @@ func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostAr
 		log.Fatalln(err)
 	}
 
-	if ids[len(ids) - 1] == 1500000 {
-		GoVacuum()
-	}
 
 	var allFu forumUserArr
 	//Inserting posts

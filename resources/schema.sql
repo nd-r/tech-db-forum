@@ -1,5 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS CITEXT;
--- SET RANDOM_PAGE_COST = 1;
+SET ENABLE_SEQSCAN = 'off';
 
 DROP TABLE IF EXISTS users, forum, thread, post, vote, forum_users CASCADE;
 
@@ -133,18 +133,12 @@ CREATE TABLE post (
 CREATE UNIQUE INDEX posts_thread_id_index
   ON post (thread_id, id);
 
-CREATE UNIQUE INDEX posts_thread_id_index12
-  ON post (thread_id, id DESC);
-
 CREATE UNIQUE INDEX posts_thread_id_parents
   ON post (id, thread_id, parents);
 
 
 CREATE UNIQUE INDEX posts_thread_id_parents_index
   ON post (thread_id, parents);
-
-CREATE UNIQUE INDEX posts_thread_id_parents_index2
-  ON post (thread_id, parents DESC);
 
 -- CREATE UNIQUE INDEX posts_parents
 --   ON post (parent, thread_id, parents)

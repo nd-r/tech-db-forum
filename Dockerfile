@@ -1,17 +1,15 @@
-FROM ubuntu:16.04
+FROM ubuntu:17.04
 
 LABEL author="Andrey Kuchin"
-RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main" > /etc/apt/sources.list.d/postgresql.list
-RUN apt-get -y update
-RUN apt-get install -y wget
-RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+
 # Обновление списка пакетов
 RUN apt-get -y update
+
 #
 # Установка postgresql
 #
-ENV PGVER 10
-RUN apt install -y postgresql-$PGVER git
+ENV PGVER 9.6
+RUN apt-get install -y postgresql-$PGVER wget git
 
 RUN wget https://storage.googleapis.com/golang/go1.9.2.linux-amd64.tar.gz
 
@@ -19,7 +17,7 @@ RUN tar -C /usr/local -xzf go1.9.2.linux-amd64.tar.gz && \
     mkdir go && mkdir go/src && mkdir go/bin && mkdir go/pkg
 
 # Run the rest of the commands as the ``postgres``
-# user created by the ``postgres-$PGVER`` package 
+# user created by the ``postgres-$PGVER`` package
 # when it was ``apt-get installed``
 USER postgres
 
@@ -45,20 +43,7 @@ shared_buffers = 512MB\n\
 effective_cache_size = 1024MB\n\
 wal_writer_delay = 2000ms\n" >> /etc/postgresql/$PGVER/main/postgresql.conf
 
-#RUN echo "log_duration = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
-#RUN echo "log_min_duration_statement = 10" >> /etc/postgresql/$PGVER/main/postgresql.conf
-#RUN echo "log_checkpoints = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
-#RUN echo "log_filename = 'postgresql-%Y-%m-%d_%H%M%S'" >> /etc/postgresql/$PGVER/main/postgresql.conf
-#RUN echo "log_directory = '/var/log/postgresql'" >> /etc/postgresql/$PGVER/main/postgresql.conf
-#RUN echo "log_destination = 'csvlog'" >> /etc/postgresql/$PGVER/main/postgresql.conf
-#RUN echo "log_destination = 'csvlog'" >> /etc/postgresql/$PGVER/main/postgresql.conf
-#RUN echo "logging_collector = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
-#RUN echo "log_disconnections = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
-#RUN echo "log_lock_waits = on" >> /etc/postgresql/$PGVER/main/postgresql.conf
-#RUN echo "log_temp_files = 0 " >> /etc/postgresql/$PGVER/main/postgresql.conf
-
 EXPOSE 5432
-# EXPOSE 1111
 
 VOLUME  ["/etc/postgresql", "/var/log/postgresql", "/var/lib/postgresql"]
 USER root
@@ -79,4 +64,3 @@ EXPOSE 5000
 
 USER postgres
 CMD  service postgresql start && tech-db-forum
-# CMD ["/usr/lib/postgresql/9.6/bin/postgres", "-D", "/var/lib/postgresql/9.6/main", "-c", "config_file=/etc/postgresql/9.6/main/postgresql.conf"] &&

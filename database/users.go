@@ -55,7 +55,10 @@ func CreateUser(user *models.User, nickname interface{}) (*models.UsersArr, erro
 func GetUserProfile(nickname interface{}) (*models.User, error) {
 	user := models.User{}
 
-	if err := db.QueryRow("getUserProfileQuery", &nickname).
+	conn, _ := db.Acquire()
+	defer db.Release(conn)
+
+	if err := conn.QueryRow("getUserProfileQuery", &nickname).
 		Scan(&user.Nickname, &user.Email, &user.About, &user.Fullname); err != nil {
 		return nil, dberrors.ErrUserNotFound
 	}

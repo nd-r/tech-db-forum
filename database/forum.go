@@ -45,7 +45,11 @@ func CreateForum(forum *models.Forum) (*models.Forum, error) {
 
 func GetForumDetails(slug interface{}) (*models.Forum, error) {
 	forum := models.Forum{}
-	err := db.QueryRow("selectForumQuery", &slug).
+
+	conn, _ := db.Acquire()
+	defer db.Release(conn)
+
+	err := conn.QueryRow("selectForumQuery", &slug).
 		Scan(&forum.Slug, &forum.Title, &forum.Posts, &forum.Threads, &forum.Moderator)
 
 	if err != nil {
@@ -144,17 +148,20 @@ func GetForumThreads(slug interface{}, limit []byte, since []byte, desc []byte) 
 	var err error
 	var rows *pgx.Rows
 
+	conn, _ := db.Acquire()
+	defer db.Release(conn)
+
 	if since == nil {
 		if bytes.Equal([]byte("true"), desc) {
-			rows, err = db.Query("gftLimitDesc", slug, limit)
+			rows, err = conn.Query("gftLimitDesc", slug, limit)
 		} else {
-			rows, err = db.Query("gftLimit", slug, limit)
+			rows, err = conn.Query("gftLimit", slug, limit)
 		}
 	} else {
 		if bytes.Equal([]byte("true"), desc) {
-			rows, err = db.Query("gftCreatedLimitDesc", slug, since, limit)
+			rows, err = conn.Query("gftCreatedLimitDesc", slug, since, limit)
 		} else {
-			rows, err = db.Query("gftCreatedLimit", slug, since, limit)
+			rows, err = conn.Query("gftCreatedLimit", slug, since, limit)
 		}
 	}
 
@@ -178,7 +185,7 @@ func GetForumThreads(slug interface{}, limit []byte, since []byte, desc []byte) 
 
 	if len(threads) == 0 {
 		var forumID int
-		if err = db.QueryRow("getForumIDBySlug", &slug).Scan(&forumID); err != nil {
+		if err = conn.QueryRow("getForumIDBySlug", &slug).Scan(&forumID); err != nil {
 			return nil, dberrors.ErrForumNotFound
 		}
 	}
@@ -189,19 +196,22 @@ func GetForumThreads(slug interface{}, limit []byte, since []byte, desc []byte) 
 func GetForumUsers(slug interface{}, limit []byte, since []byte, desc []byte) (*models.UsersArr, error) {
 	var err error
 
+	conn, _ := db.Acquire()
+	defer db.Release(conn)
+
 	var rows *pgx.Rows
 
 	if since == nil {
 		if bytes.Equal([]byte("true"), desc) {
-			rows, err = db.Query("gfuLimitDesc", slug, limit)
+			rows, err = conn.Query("gfuLimitDesc", slug, limit)
 		} else {
-			rows, err = db.Query("gfuLimit", slug, limit)
+			rows, err = conn.Query("gfuLimit", slug, limit)
 		}
 	} else {
 		if bytes.Equal([]byte("true"), desc) {
-			rows, err = db.Query("gfuSinceLimitDesc", slug, since, limit)
+			rows, err = conn.Query("gfuSinceLimitDesc", slug, since, limit)
 		} else {
-			rows, err = db.Query("gfuSinceLimit", slug, since, limit)
+			rows, err = conn.Query("gfuSinceLimit", slug, since, limit)
 		}
 	}
 
@@ -223,7 +233,7 @@ func GetForumUsers(slug interface{}, limit []byte, since []byte, desc []byte) (*
 
 	if len(users) == 0 {
 		var forumID int
-		if err = db.QueryRow("getForumIDBySlug", &slug).Scan(&forumID); err != nil {
+		if err = conn.QueryRow("getForumIDBySlug", &slug).Scan(&forumID); err != nil {
 			return nil, dberrors.ErrForumNotFound
 		}
 	}

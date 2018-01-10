@@ -12,7 +12,10 @@ func GetPostDetails(id *string, related []byte) (*models.PostDetails, int) {
 	postDetails := models.PostDetails{}
 	postDetails.PostDetails = &models.Post{}
 
-	err := db.QueryRow("getPostDetailsQuery", id).
+	conn, _ := db.Acquire()
+	defer db.Release(conn)
+
+	err := conn.QueryRow("getPostDetailsQuery", id).
 		Scan(&postDetails.PostDetails.Id, &postDetails.PostDetails.User_nick,
 		&postDetails.PostDetails.Message, &postDetails.PostDetails.Created,
 		&postDetails.PostDetails.Forum_slug, &postDetails.PostDetails.Thread_id,
@@ -31,18 +34,18 @@ func GetPostDetails(id *string, related []byte) (*models.PostDetails, int) {
 		switch val {
 		case "user":
 			postDetails.AuthorDetails = &models.User{}
-			db.QueryRow("getUserProfileQuery", &postDetails.PostDetails.User_nick).
+			conn.QueryRow("getUserProfileQuery", &postDetails.PostDetails.User_nick).
 				Scan(&postDetails.AuthorDetails.Nickname, &postDetails.AuthorDetails.Email,
 				&postDetails.AuthorDetails.About, &postDetails.AuthorDetails.Fullname)
 		case "forum":
 			postDetails.ForumDetails = &models.Forum{}
-			db.QueryRow("selectForumQuery", postDetails.PostDetails.Forum_slug).
+			conn.QueryRow("selectForumQuery", postDetails.PostDetails.Forum_slug).
 				Scan(&postDetails.ForumDetails.Slug, &postDetails.ForumDetails.Title,
 				&postDetails.ForumDetails.Posts, &postDetails.ForumDetails.Threads,
 				&postDetails.ForumDetails.Moderator)
 		case "thread":
 			postDetails.ThreadDetails = &models.Thread{}
-			db.QueryRow("getThreadById", postDetails.PostDetails.Thread_id).
+			conn.QueryRow("getThreadById", postDetails.PostDetails.Thread_id).
 				Scan(&postDetails.ThreadDetails.Id, &postDetails.ThreadDetails.Slug,
 				&postDetails.ThreadDetails.Title, &postDetails.ThreadDetails.Message,
 				&postDetails.ThreadDetails.Forum_slug, &postDetails.ThreadDetails.User_nick,

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/nd-r/tech-db-forum/models"
+	"github.com/nd-r/tech-db-forum/cache"
 )
 
 func GetPostDetails(id *string, related []byte) (*models.PostDetails, int) {
@@ -33,16 +34,24 @@ func GetPostDetails(id *string, related []byte) (*models.PostDetails, int) {
 	for _, val := range relatedArr {
 		switch val {
 		case "user":
-			postDetails.AuthorDetails = &models.User{}
-			conn.QueryRow("getUserProfileQuery", &postDetails.PostDetails.User_nick).
-				Scan(&postDetails.AuthorDetails.Nickname, &postDetails.AuthorDetails.Email,
-				&postDetails.AuthorDetails.About, &postDetails.AuthorDetails.Fullname)
+			if user := cache.TheGreatUserCache.Get(strings.ToLower(postDetails.PostDetails.User_nick)); user != nil {
+				postDetails.AuthorDetails = &user.Model
+			} else {
+				postDetails.AuthorDetails = &models.User{}
+				conn.QueryRow("getUserProfileQuery", &postDetails.PostDetails.User_nick).
+					Scan(&postDetails.AuthorDetails.Nickname, &postDetails.AuthorDetails.Email,
+					&postDetails.AuthorDetails.About, &postDetails.AuthorDetails.Fullname)
+			}
 		case "forum":
-			postDetails.ForumDetails = &models.Forum{}
-			conn.QueryRow("selectForumQuery", postDetails.PostDetails.Forum_slug).
-				Scan(&postDetails.ForumDetails.Slug, &postDetails.ForumDetails.Title,
-				&postDetails.ForumDetails.Posts, &postDetails.ForumDetails.Threads,
-				&postDetails.ForumDetails.Moderator)
+			if forum := cache.TheGreatForumCache.Get(strings.ToLower(postDetails.PostDetails.Forum_slug)); forum != nil {
+				postDetails.ForumDetails = &forum.Model
+			} else {
+				postDetails.ForumDetails = &models.Forum{}
+				conn.QueryRow("selectForumQuery", postDetails.PostDetails.Forum_slug).
+					Scan(&postDetails.ForumDetails.Slug, &postDetails.ForumDetails.Title,
+					&postDetails.ForumDetails.Posts, &postDetails.ForumDetails.Threads,
+					&postDetails.ForumDetails.Moderator)
+			}
 		case "thread":
 			postDetails.ThreadDetails = &models.Thread{}
 			conn.QueryRow("getThreadById", postDetails.PostDetails.Thread_id).

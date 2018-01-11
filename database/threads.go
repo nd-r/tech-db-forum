@@ -3,13 +3,16 @@ package database
 import (
 	"bytes"
 	"log"
-	"sort"
 	"strconv"
 	"time"
 
 	"github.com/jackc/pgx"
 	"github.com/nd-r/tech-db-forum/dberrors"
 	"github.com/nd-r/tech-db-forum/models"
+	"github.com/emirpasic/gods/sets/treeset"
+	"github.com/nd-r/tech-db-forum/cache"
+	"strings"
+	"context"
 )
 
 var created, _ = time.Parse("2006-01-02T15:04:05.000000Z", "2006-01-02T15:04:05.010000Z")
@@ -51,6 +54,13 @@ const getThreadIdAndForumSlugById = `SELECT id,
 FROM thread
 WHERE id=$1`
 
+func usersComparator(a, b interface{}) int {
+	u1 := a.(*models.User)
+	u2 := b.(*models.User)
+
+	return u1.Compare(u2)
+}
+
 func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostArr, error) {
 	tx, err := db.Begin()
 	if err != nil {
@@ -90,10 +100,12 @@ func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostAr
 		log.Fatalln(err)
 	}
 
+	userSet := treeset.NewWith(usersComparator)
 
-	var allFu forumUserArr
+	//var allFu forumUserArr
 	//Inserting posts
 	var rowsToCopy [][]interface{}
+
 	for index, post := range *postsArr {
 		var parentThreadID int64
 
@@ -107,11 +119,18 @@ func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostAr
 			}
 		}
 
-		user := models.User{}
-		if err = tx.QueryRow("getUserProfileQuery", post.User_nick).Scan(&user.Nickname, &user.Email, &user.About, &user.Fullname); err != nil {
-			log.Println(err)
-			return nil, dberrors.ErrUserNotFound
+		var user *models.User
+		cachedUser := cache.TheGreatUserCache.Get(strings.ToLower(post.User_nick))
+		if cachedUser != nil {
+			user = &cachedUser.Model
+		} else {
+			user = &models.User{}
+			if err = tx.QueryRow("getUserProfileQuery", post.User_nick).Scan(&user.Nickname, &user.Email, &user.About, &user.Fullname); err != nil {
+				log.Println(err)
+				return nil, dberrors.ErrUserNotFound
+			}
 		}
+		userSet.Add(user)
 
 		post.Id = int(ids[index])
 		post.Thread_id = threadID
@@ -120,19 +139,28 @@ func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostAr
 		post.User_nick = user.Nickname
 		post.Parents = append(post.Parents, ids[index])
 
-		allFu = append(allFu, forumUser{&user.Nickname, &user.Email, &user.About, &user.Fullname})
-
 		rowsToCopy = append(rowsToCopy, []interface{}{post.Id, post.User_nick, post.Message, post.Created, post.Forum_slug, post.Thread_id, post.Parent, post.Parents, post.Parents[0]})
 	}
 
-	sort.Sort(allFu)
+	batch := tx.BeginBatch()
 
-	for _, i := range allFu {
-		_, err = tx.Exec("insertIntoForumUsers", forumID, i.userNickname, i.userEmail, i.userAbout, i.userFullname)
-		if err != nil {
+	orderedUsers := userSet.Values()
+	for _, i := range orderedUsers {
+		user := i.(*models.User)
+		batch.Queue("insertIntoForumUsers", []interface{}{forumID, user.Nickname, user.Email, user.About, user.Fullname}, nil,nil)
+	}
+
+	if err = batch.Send(context.Background(), nil); err != nil {
+		log.Fatalln(err)
+	}
+
+	for range orderedUsers {
+		if _, err := batch.ExecResults(); err != nil{
 			log.Fatalln(err)
 		}
 	}
+
+	batch.Close()
 
 	rowsCreated, err := tx.CopyFrom(pgx.Identifier{"post"}, []string{"id", "user_nick", "message", "created", "forum_slug", "thread_id", "parent", "parents", "main_parent"}, pgx.CopyFromRows(rowsToCopy))
 	if err != nil {

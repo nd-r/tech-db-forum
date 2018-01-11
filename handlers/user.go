@@ -5,6 +5,8 @@ import (
 	"github.com/nd-r/tech-db-forum/dberrors"
 	"github.com/nd-r/tech-db-forum/models"
 	"github.com/valyala/fasthttp"
+	"github.com/nd-r/tech-db-forum/cache"
+	"strings"
 )
 
 // CreateUser - создание нового пользователя
@@ -24,6 +26,9 @@ func CreateUser(ctx *fasthttp.RequestCtx) {
 		ctx.SetStatusCode(201)
 		user.Nickname = ctx.UserValue("nickname").(string)
 		resp, _ = user.MarshalJSON()
+
+		cachedUser := cache.CachedUser{Model: user, Json: resp}
+		cache.TheGreatUserCache.Push(strings.ToLower(user.Nickname), &cachedUser)
 	case dberrors.ErrUserExists:
 		ctx.SetStatusCode(409)
 		resp, _ = existingUsers.MarshalJSON()
@@ -37,19 +42,25 @@ func CreateUser(ctx *fasthttp.RequestCtx) {
 // GET /user/{nickname}/profile
 func GetUserProfile(ctx *fasthttp.RequestCtx) {
 	nickname := ctx.UserValue("nickname")
-
-	user, err := database.GetUserProfile(nickname)
-
 	var resp []byte
 
-	switch err {
-	case nil:
-		resp, _ = user.MarshalJSON()
-	case dberrors.ErrUserNotFound:
-		ctx.SetStatusCode(404)
-		resp = models.ErrorMsg
-	}
+	cachedUser := cache.TheGreatUserCache.Get(strings.ToLower(nickname.(string)))
 
+	if cachedUser == nil {
+		user, err := database.GetUserProfile(nickname)
+
+		switch err {
+		case nil:
+			resp, _ = user.MarshalJSON()
+			cu := cache.CachedUser{Model: *user, Json: resp}
+			cache.TheGreatUserCache.Push(strings.ToLower(nickname.(string)), &cu)
+		case dberrors.ErrUserNotFound:
+			ctx.SetStatusCode(404)
+			resp = models.ErrorMsg
+		}
+	} else {
+		resp = cachedUser.Json
+	}
 	ctx.SetContentType("application/json")
 	ctx.Write(resp)
 }
@@ -68,6 +79,10 @@ func UpdateUserProfile(ctx *fasthttp.RequestCtx) {
 	switch error {
 	case nil:
 		resp, _ = userUpdated.MarshalJSON()
+
+		cachedUser := cache.CachedUser{Model: *userUpdated, Json: resp}
+		cache.TheGreatUserCache.Push(strings.ToLower(userUpdated.Nickname), &cachedUser)
+
 	case dberrors.ErrUserConflict:
 		ctx.SetStatusCode(409)
 		resp = models.ErrorMsg

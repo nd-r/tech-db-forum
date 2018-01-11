@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/valyala/fasthttp"
 	"github.com/nd-r/tech-db-forum/database"
+	"github.com/nd-r/tech-db-forum/cache"
 )
 
 
@@ -11,6 +12,8 @@ import (
 func DBClear(ctx *fasthttp.RequestCtx) {
 	ctx.SetContentType("application/json")
 	database.DeleteDB()
+	cache.TheGreatForumCache.Clear()
+	cache.TheGreatUserCache.Clear()
 }
 
 // DBStatus - получение информации о базе данных

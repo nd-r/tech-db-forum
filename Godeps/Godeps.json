@@ -8,79 +8,88 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/buaazp/fasthttprouter",
-			"Comment": "v0.1.1",
-			"Rev": "ade4e2031af3aed7fffd241084aad80a58faf421"
+			"Comment": "v0.1.1-2-g29a27c7",
+			"Rev": "29a27c70315770a2344e11847de85648512717e7"
+		},
+		{
+			"ImportPath": "github.com/cornelk/hashmap",
+			"Rev": "b571ef5b4c818eb5e31310821053fe8ccbd51a4d"
+		},
+		{
+			"ImportPath": "github.com/dchest/siphash",
+			"Comment": "v1.0.0-32-g4ebf1de",
+			"Rev": "4ebf1de738443ea7f45f02dc394c4df1942a126d"
 		},
 		{
 			"ImportPath": "github.com/jackc/pgx",
-			"Comment": "v3.0.1-65-gf6d3753",
-			"Rev": "f6d37536c424300757bcba3933a67b5cb10a77be"
+			"Comment": "v3.0.1-96-g4fb47ac",
+			"Rev": "4fb47ac8c9677c49cfa0f4ae61c0d0116c0a07fc"
 		},
 		{
 			"ImportPath": "github.com/jackc/pgx/chunkreader",
-			"Comment": "v3.0.1-65-gf6d3753",
-			"Rev": "f6d37536c424300757bcba3933a67b5cb10a77be"
+			"Comment": "v3.0.1-96-g4fb47ac",
+			"Rev": "4fb47ac8c9677c49cfa0f4ae61c0d0116c0a07fc"
 		},
 		{
 			"ImportPath": "github.com/jackc/pgx/internal/sanitize",
-			"Comment": "v3.0.1-65-gf6d3753",
-			"Rev": "f6d37536c424300757bcba3933a67b5cb10a77be"
+			"Comment": "v3.0.1-96-g4fb47ac",
+			"Rev": "4fb47ac8c9677c49cfa0f4ae61c0d0116c0a07fc"
 		},
 		{
 			"ImportPath": "github.com/jackc/pgx/pgio",
-			"Comment": "v3.0.1-65-gf6d3753",
-			"Rev": "f6d37536c424300757bcba3933a67b5cb10a77be"
+			"Comment": "v3.0.1-96-g4fb47ac",
+			"Rev": "4fb47ac8c9677c49cfa0f4ae61c0d0116c0a07fc"
 		},
 		{
 			"ImportPath": "github.com/jackc/pgx/pgproto3",
-			"Comment": "v3.0.1-65-gf6d3753",
-			"Rev": "f6d37536c424300757bcba3933a67b5cb10a77be"
+			"Comment": "v3.0.1-96-g4fb47ac",
+			"Rev": "4fb47ac8c9677c49cfa0f4ae61c0d0116c0a07fc"
 		},
 		{
 			"ImportPath": "github.com/jackc/pgx/pgtype",
-			"Comment": "v3.0.1-65-gf6d3753",
-			"Rev": "f6d37536c424300757bcba3933a67b5cb10a77be"
+			"Comment": "v3.0.1-96-g4fb47ac",
+			"Rev": "4fb47ac8c9677c49cfa0f4ae61c0d0116c0a07fc"
 		},
 		{
 			"ImportPath": "github.com/klauspost/compress/flate",
-			"Comment": "v1.2.1-8-gf3dce52",
-			"Rev": "f3dce52e0576655d55fd69e74b63da96ad1108f3"
+			"Comment": "v1.2.1-12-gb88785b",
+			"Rev": "b88785bfd699aa994985ea91b90ee8a1721c3fe1"
 		},
 		{
 			"ImportPath": "github.com/klauspost/compress/gzip",
-			"Comment": "v1.2.1-8-gf3dce52",
-			"Rev": "f3dce52e0576655d55fd69e74b63da96ad1108f3"
+			"Comment": "v1.2.1-12-gb88785b",
+			"Rev": "b88785bfd699aa994985ea91b90ee8a1721c3fe1"
 		},
 		{
 			"ImportPath": "github.com/klauspost/compress/zlib",
-			"Comment": "v1.2.1-8-gf3dce52",
-			"Rev": "f3dce52e0576655d55fd69e74b63da96ad1108f3"
+			"Comment": "v1.2.1-12-gb88785b",
+			"Rev": "b88785bfd699aa994985ea91b90ee8a1721c3fe1"
 		},
 		{
 			"ImportPath": "github.com/klauspost/cpuid",
-			"Comment": "v1.1",
-			"Rev": "ae7887de9fa5d2db4eaa8174a7eff2c1ac00f2da"
+			"Comment": "v1.1-2-gae832f2",
+			"Rev": "ae832f27941af41db13bd6d8efd2493e3b22415a"
 		},
 		{
 			"ImportPath": "github.com/mailru/easyjson",
-			"Rev": "2a92e673c9a6302dd05c3a691ae1f24aef46457d"
+			"Rev": "32fa128f234d041f196a9f3e0fea5ac9772c08e1"
 		},
 		{
 			"ImportPath": "github.com/mailru/easyjson/buffer",
-			"Rev": "2a92e673c9a6302dd05c3a691ae1f24aef46457d"
+			"Rev": "32fa128f234d041f196a9f3e0fea5ac9772c08e1"
 		},
 		{
 			"ImportPath": "github.com/mailru/easyjson/jlexer",
-			"Rev": "2a92e673c9a6302dd05c3a691ae1f24aef46457d"
+			"Rev": "32fa128f234d041f196a9f3e0fea5ac9772c08e1"
 		},
 		{
 			"ImportPath": "github.com/mailru/easyjson/jwriter",
-			"Rev": "2a92e673c9a6302dd05c3a691ae1f24aef46457d"
+			"Rev": "32fa128f234d041f196a9f3e0fea5ac9772c08e1"
 		},
 		{
 			"ImportPath": "github.com/pkg/errors",
-			"Comment": "v0.8.0-7-gf15c970",
-			"Rev": "f15c970de5b76fac0b59abb32d62c17cc7bed265"
+			"Comment": "v0.8.0-10-ge881fd5",
+			"Rev": "e881fd58d78e04cf6d0de1217f8707c8cc2249bc"
 		},
 		{
 			"ImportPath": "github.com/valyala/bytebufferpool",
@@ -88,27 +97,18 @@
 		},
 		{
 			"ImportPath": "github.com/valyala/fasthttp",
-			"Comment": "v20160617-117-g5116aa6",
-			"Rev": "5116aa64e038d917b3916a74da456c00643ff1e6"
+			"Comment": "v20160617-123-ge5f51c1",
+			"Rev": "e5f51c11919d4f66400334047b897ef0a94c6f3c"
 		},
 		{
 			"ImportPath": "github.com/valyala/fasthttp/fasthttputil",
-			"Comment": "v20160617-117-g5116aa6",
-			"Rev": "5116aa64e038d917b3916a74da456c00643ff1e6"
-		},
-		{
-			"ImportPath": "github.com/valyala/fasthttp/reuseport",
-			"Comment": "v20160617-117-g5116aa6",
-			"Rev": "5116aa64e038d917b3916a74da456c00643ff1e6"
+			"Comment": "v20160617-123-ge5f51c1",
+			"Rev": "e5f51c11919d4f66400334047b897ef0a94c6f3c"
 		},
 		{
 			"ImportPath": "github.com/valyala/fasthttp/stackless",
-			"Comment": "v20160617-117-g5116aa6",
-			"Rev": "5116aa64e038d917b3916a74da456c00643ff1e6"
-		},
-		{
-			"ImportPath": "github.com/valyala/tcplisten",
-			"Rev": "ceec8f93295a060cdb565ec25e4ccf17941dbd55"
+			"Comment": "v20160617-123-ge5f51c1",
+			"Rev": "e5f51c11919d4f66400334047b897ef0a94c6f3c"
 		}
 	]
 }

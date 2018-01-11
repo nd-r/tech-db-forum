@@ -6,6 +6,8 @@ import (
 	"github.com/nd-r/tech-db-forum/models"
 	"github.com/valyala/fasthttp"
 	// "log"
+	"github.com/nd-r/tech-db-forum/cache"
+	"strings"
 )
 
 // CreateForum - handler создания форума
@@ -70,17 +72,24 @@ func CreateThread(ctx *fasthttp.RequestCtx) {
 // GET /forum/{slug}/details
 func GetForumDetails(ctx *fasthttp.RequestCtx) {
 	slug := ctx.UserValue("slug")
-
-	forum, err := database.GetForumDetails(slug)
-
 	var resp []byte
 
-	switch err {
-	case nil:
-		resp, _ = forum.MarshalJSON()
-	default:
-		ctx.SetStatusCode(404)
-		resp = models.ErrorMsg
+	cachedForum := cache.TheGreatForumCache.Get(strings.ToLower(slug.(string)))
+
+	if cachedForum == nil {
+		forum, err := database.GetForumDetails(slug)
+
+		switch err {
+		case nil:
+			resp, _ = forum.MarshalJSON()
+			cachedForum := cache.CachedForum{Model: *forum, Json: resp}
+			cache.TheGreatForumCache.Push(strings.ToLower(slug.(string)), &cachedForum)
+		default:
+			ctx.SetStatusCode(404)
+			resp = models.ErrorMsg
+		}
+	} else {
+		resp = cachedForum.Json
 	}
 
 	ctx.SetContentType("application/json")
@@ -98,7 +107,7 @@ func GetForumThreads(ctx *fasthttp.RequestCtx) {
 	desc := ctx.QueryArgs().Peek("desc")
 
 	threadArr, error := database.GetForumThreads(&slug, limit, since, desc)
-	
+
 	var resp []byte
 	switch error {
 	case nil:
@@ -126,14 +135,14 @@ func GetForumUsers(ctx *fasthttp.RequestCtx) {
 
 	users, err := database.GetForumUsers(&slug, limit, since, desc)
 
-	var resp []byte 
+	var resp []byte
 
 	switch err {
 	case nil:
 		ctx.SetStatusCode(200)
 		if len(*users) != 0 {
 			resp, _ = users.MarshalJSON()
-		}else {
+		} else {
 			resp = []byte("[]")
 		}
 	case dberrors.ErrForumNotFound:
@@ -141,6 +150,6 @@ func GetForumUsers(ctx *fasthttp.RequestCtx) {
 		resp = models.ErrorMsg
 	}
 
-	ctx.SetContentType("application/json")	
+	ctx.SetContentType("application/json")
 	ctx.Write(resp)
 }

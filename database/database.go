@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx"
 	"github.com/nd-r/tech-db-forum/resources"
+	"time"
 )
 
 var db *pgx.ConnPool
@@ -26,6 +27,13 @@ func TxMustBegin() *pgx.Tx {
 		log.Fatalln(err)
 	}
 	return tx
+}
+
+func Vaccuum() {
+	time.Sleep(20 * time.Second)
+	//go func() {
+	db.Exec("VACUUM ANALYZE")
+	//}()
 }
 
 // InitDBSchema initializes tables, indexes, etc.

@@ -44,7 +44,6 @@ const checkThreadIdBySlug = `SELECT id
 FROM thread
 WHERE slug=$1`
 
-
 const gftLimit = `SELECT id,
 	slug::TEXT,
 	title,

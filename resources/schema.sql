@@ -158,7 +158,7 @@ CREATE UNIQUE INDEX posts_thread_id_parents_index
 CREATE UNIQUE INDEX ON post (thread_id, id, parent, main_parent)
   WHERE parent = 0;
 
--- CREATE UNIQUE INDEX ON post(id, parents);
+create index on post (main_parent);
 
 CREATE UNIQUE INDEX parent_tree_2
   ON post (main_parent, parents);

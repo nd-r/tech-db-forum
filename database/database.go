@@ -20,7 +20,13 @@ var pgConfig = pgx.ConnConfig{
 	Database: "docker",
 }
 
-
+func TxMustBegin() *pgx.Tx {
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return tx
+}
 
 // InitDBSchema initializes tables, indexes, etc.
 func InitDBSchema() {

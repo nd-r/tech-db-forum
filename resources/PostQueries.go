@@ -222,8 +222,24 @@ JOIN (
 ON p.main_parent=s.id
 ORDER BY p.parents`
 
+const selectParentAndParents = `SELECT thread_id,
+	parents
+FROM post
+WHERE id = $1`
+
+const insertIntoPost = `INSERT INTO post(id, user_nick, message, created, forum_slug, thread_id, parent, parents, main_parent)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+
 func PreparePostQueries(tx *pgx.ConnPool) {
 	if _, err := tx.Prepare("getPostDetailsQuery", getPostDetailsQuery); err != nil {
+		log.Fatalln(err)
+	}
+
+	if _, err := tx.Prepare("insertIntoPost", insertIntoPost); err != nil {
+		log.Fatalln(err)
+	}
+
+	if _, err := tx.Prepare("selectParentAndParents", selectParentAndParents); err != nil {
 		log.Fatalln(err)
 	}
 

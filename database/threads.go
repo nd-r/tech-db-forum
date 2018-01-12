@@ -10,7 +10,6 @@ import (
 	"github.com/nd-r/tech-db-forum/dberrors"
 	"github.com/nd-r/tech-db-forum/models"
 	"github.com/emirpasic/gods/sets/treeset"
-	"github.com/nd-r/tech-db-forum/cache"
 	"strings"
 	"context"
 )
@@ -39,11 +38,6 @@ const generateNextIDs = `SELECT
 	array_agg(nextval('post_id_seq')::BIGINT)
 FROM generate_series(1,$1)`
 
-const selectParentAndParents = `SELECT thread_id,
-	parents
-FROM post
-WHERE id = $1`
-
 const getThreadIdAndForumSlugBySlug = `SELECT id,
 	forum_slug::TEXT
 FROM thread
@@ -61,13 +55,18 @@ func usersComparator(a, b interface{}) int {
 	return u1.Compare(u2)
 }
 
+func StringsCompare(a, b interface{}) int {
+	return strings.Compare(a.(string), b.(string))
+}
+
 func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostArr, error) {
-	tx, err := db.Begin()
-	if err != nil {
-		log.Fatalln(err)
-	}
+	tx := TxMustBegin()
 	defer tx.Rollback()
 
+	batch := tx.BeginBatch()
+	defer batch.Close()
+
+	var err error
 	var forumID, threadID int
 	var forumSlug string
 
@@ -100,74 +99,92 @@ func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostAr
 		log.Fatalln(err)
 	}
 
-	userSet := treeset.NewWith(usersComparator)
+	/**
+	Check all parents for existence and same thread id
+	 */
+	var postsWaitingParents []int
+	userNicknameSet := treeset.NewWith(StringsCompare)
 
-	//var allFu forumUserArr
-	//Inserting posts
-	var rowsToCopy [][]interface{}
-
-	for index, post := range *postsArr {
-		var parentThreadID int64
+	for i, post := range *postsArr {
+		userNicknameSet.Add(strings.ToLower(post.User_nick))
 
 		if post.Parent != 0 {
-			if err = tx.QueryRow(selectParentAndParents, post.Parent).
-				Scan(&parentThreadID, &post.Parents); err != nil {
-				return nil, dberrors.ErrPostsConflict
-			}
-			if parentThreadID != 0 && parentThreadID != int64(threadID) {
-				return nil, dberrors.ErrPostsConflict
-			}
+			postsWaitingParents = append(postsWaitingParents, i)
+			batch.Queue("selectParentAndParents", []interface{}{int(post.Parent)}, nil, nil)
 		}
+	}
 
-		var user *models.User
-		cachedUser := cache.TheGreatUserCache.Get(strings.ToLower(post.User_nick))
-		if cachedUser != nil {
-			user = &cachedUser.Model
-		} else {
-			user = &models.User{}
-			if err = tx.QueryRow("getUserProfileQuery", post.User_nick).Scan(&user.Nickname, &user.Email, &user.About, &user.Fullname); err != nil {
-				log.Println(err)
-				return nil, dberrors.ErrUserNotFound
-			}
+	userNicknameOrderedSet := userNicknameSet.Values()
+
+	for _, userNickname := range userNicknameOrderedSet {
+		batch.Queue("getUserProfileQuery", []interface{}{userNickname}, nil, nil)
+	}
+
+	var parentThreadID int64
+	if err = batch.Send(context.Background(), nil);
+		err != nil {
+		log.Fatalln(err)
+	}
+
+	for _, postIdx := range postsWaitingParents {
+		if err = batch.QueryRowResults().
+			Scan(&parentThreadID, &(*postsArr)[postIdx].Parents);
+			err != nil {
+			return nil, dberrors.ErrPostsConflict
 		}
-		userSet.Add(user)
+		if parentThreadID != 0 && parentThreadID != int64(threadID) {
+			return nil, dberrors.ErrPostsConflict
+		}
+	}
 
+	userRealNicknameMap := make(map[string]string)
+	var userModelsOrderedSet models.UsersArr
+
+	for _, userNickname := range userNicknameOrderedSet {
+		user := models.User{}
+		if err = batch.QueryRowResults().
+			Scan(&user.Nickname, &user.Email, &user.About, &user.Fullname);
+			err != nil {
+			return nil, dberrors.ErrUserNotFound
+		}
+		userModelsOrderedSet = append(userModelsOrderedSet, &user)
+		userRealNicknameMap[userNickname.(string)] = user.Nickname
+	}
+
+	/**
+	end check
+	 */
+
+	for index, post := range *postsArr {
 		post.Id = int(ids[index])
 		post.Thread_id = threadID
 		post.Forum_slug = forumSlug
 		post.Created = &created
-		post.User_nick = user.Nickname
+		post.User_nick = userRealNicknameMap[strings.ToLower(post.User_nick)]
 		post.Parents = append(post.Parents, ids[index])
 
-		rowsToCopy = append(rowsToCopy, []interface{}{post.Id, post.User_nick, post.Message, post.Created, post.Forum_slug, post.Thread_id, post.Parent, post.Parents, post.Parents[0]})
+		batch.Queue("insertIntoPost", []interface{}{post.Id, post.User_nick, post.Message, post.Created, post.Forum_slug, post.Thread_id, post.Parent, post.Parents, post.Parents[0]}, nil, nil)
 	}
 
-	batch := tx.BeginBatch()
-
-	orderedUsers := userSet.Values()
-	for _, i := range orderedUsers {
-		user := i.(*models.User)
-		batch.Queue("insertIntoForumUsers", []interface{}{forumID, user.Nickname, user.Email, user.About, user.Fullname}, nil,nil)
+	for _, user := range userModelsOrderedSet {
+		batch.Queue("insertIntoForumUsers", []interface{}{forumID, user.Nickname, user.Email, user.About, user.Fullname}, nil, nil)
 	}
 
-	if err = batch.Send(context.Background(), nil); err != nil {
+	if err = batch.Send(context.Background(), nil);
+		err != nil {
 		log.Fatalln(err)
 	}
 
-	for range orderedUsers {
-		if _, err := batch.ExecResults(); err != nil{
+	for range *postsArr {
+		if _, err := batch.ExecResults(); err != nil {
 			log.Fatalln(err)
 		}
 	}
 
-	batch.Close()
-
-	rowsCreated, err := tx.CopyFrom(pgx.Identifier{"post"}, []string{"id", "user_nick", "message", "created", "forum_slug", "thread_id", "parent", "parents", "main_parent"}, pgx.CopyFromRows(rowsToCopy))
-	if err != nil {
-		log.Fatalln(err)
-	}
-	if rowsCreated != len(*postsArr) {
-		log.Println(err, rowsCreated)
+	for range userModelsOrderedSet {
+		if _, err := batch.ExecResults(); err != nil {
+			log.Fatalln(err)
+		}
 	}
 
 	_, err = tx.Exec(`UPDATE forum SET posts=posts+$2 WHERE slug=$1`, forumSlug, len(*postsArr))

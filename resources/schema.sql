@@ -9,16 +9,16 @@ DROP FUNCTION IF EXISTS thread_insert();
 -- USERS
 --
 CREATE TABLE users (
-  id       SERIAL PRIMARY KEY,
+  id       SERIAL,
 
-  nickname CITEXT NOT NULL UNIQUE,
-  email    CITEXT NOT NULL UNIQUE,
+  nickname CITEXT NOT NULL,
+  email    CITEXT NOT NULL,
 
   about    TEXT DEFAULT NULL,
   fullname TEXT   NOT NULL
 );
 
-CREATE UNIQUE INDEX users_covering_index
+CREATE INDEX users_covering_index
   ON users (nickname, email, about, fullname);
 
 CREATE UNIQUE INDEX users_nickname_index
@@ -27,14 +27,14 @@ CREATE UNIQUE INDEX users_nickname_index
 CREATE UNIQUE INDEX users_email_index
   ON users (email);
 
-CREATE UNIQUE INDEX ON users (nickname, email);
+CREATE INDEX ON users (nickname, email);
 
 --
 -- FORUM
 --
 CREATE TABLE forum (
   id        SERIAL PRIMARY KEY,
-  slug      CITEXT  NOT NULL UNIQUE,
+  slug      CITEXT  NOT NULL,
 
   title     TEXT    NOT NULL,
   moderator CITEXT  NOT NULL,
@@ -46,10 +46,10 @@ CREATE TABLE forum (
 CREATE UNIQUE INDEX forum_slug_index
   ON forum (slug);
 
-CREATE UNIQUE INDEX forum_slug_id_index
+CREATE INDEX forum_slug_id_index
   ON forum (slug, id);
 
-CREATE UNIQUE INDEX on forum (slug, id, title, moderator, threads, posts);
+CREATE INDEX on forum (slug, id, title, moderator, threads, posts);
 --
 -- THREAD
 --
@@ -91,13 +91,13 @@ CREATE TRIGGER on_thread_insert
 CREATE UNIQUE INDEX thread_slug_index
   ON thread (slug);
 
-CREATE UNIQUE INDEX thread_slug_id_index
+CREATE INDEX thread_slug_id_index
   ON thread (slug, id);
 
-CREATE UNIQUE INDEX thread_forum_id_created_index
+CREATE INDEX thread_forum_id_created_index
   ON thread (forum_id, created);
 
-CREATE UNIQUE INDEX thread_forum_id_created_index2
+CREATE INDEX thread_forum_id_created_index2
   ON thread (forum_id, created DESC);
 
 CREATE UNIQUE INDEX thread_id_forum_slug_index
@@ -113,7 +113,7 @@ CREATE UNIQUE INDEX thread_covering_index
 -- POST
 --
 CREATE TABLE post (
-  id          SERIAL PRIMARY KEY,
+  id          SERIAL,
 
   user_nick   TEXT      NOT NULL,
 
@@ -124,56 +124,32 @@ CREATE TABLE post (
   thread_id   INTEGER   NOT NULL,
 
   parent      INTEGER            DEFAULT 0,
-  parents     BIGINT [] NOT NULL,
-  main_parent BIGINT    NOT NULL,
+  parents     INT [] NOT NULL,
+  main_parent INT    NOT NULL,
 
   is_edited   BOOLEAN   NOT NULL DEFAULT FALSE
 );
 
-CREATE UNIQUE INDEX posts_thread_id_index
+CREATE INDEX posts_thread_id_index
   ON post (thread_id, id);
 
-CREATE UNIQUE INDEX posts_thread_id_parents
-  ON post (id, thread_id, parents);
-
-
-CREATE UNIQUE INDEX posts_thread_id_parents_index
+CREATE INDEX posts_thread_id_parents_index
   ON post (thread_id, parents);
 
--- CREATE UNIQUE INDEX posts_parents
---   ON post (parent, thread_id, parents)
---   WHERE parent = 0;
-
-
--- CREATE UNIQUE INDEX parent_tree_1
---   ON post (parent, thread_id, main_parent)
---   WHERE parent = 0;
---
--- CREATE UNIQUE INDEX parent_tree_12
---   ON post (parent, thread_id, id, main_parent)
---   WHERE parent = 0;
--- CREATE UNIQUE INDEX parent_tree_13
---   ON post (parent, thread_id, id, main_parent)
---   WHERE parent = 0;
-CREATE UNIQUE INDEX ON post (thread_id, id, parent, main_parent)
+CREATE INDEX ON post (thread_id, id, parent, main_parent)
   WHERE parent = 0;
 
-create index on post (main_parent);
+CREATE INDEX parent_tree_3_1
+  ON post (main_parent, parents DESC, id);
 
-CREATE UNIQUE INDEX parent_tree_2
-  ON post (main_parent, parents);
-
-CREATE UNIQUE INDEX parent_tree_3
-  ON post (main_parent, parents, id);
-
-CREATE UNIQUE INDEX parent_tree_4
+CREATE INDEX parent_tree_4
   ON post (id, main_parent);
 
 --
 -- VOTE
 --
 CREATE TABLE vote (
-  id         SERIAL PRIMARY KEY,
+  id         SERIAL,
 
   user_id    INTEGER NOT NULL,
   thread_id  INTEGER NOT NULL REFERENCES thread,
@@ -182,10 +158,6 @@ CREATE TABLE vote (
   prev_voice INTEGER DEFAULT 0,
   CONSTRAINT unique_user_and_thread UNIQUE (user_id, thread_id)
 );
-
-CREATE UNIQUE INDEX vote_nickname_thread_id_index
-  ON vote (user_id, thread_id);
-
 
 CREATE TABLE forum_users (
   forumId  INTEGER,
@@ -199,5 +171,5 @@ CREATE TABLE forum_users (
 CREATE UNIQUE INDEX forum_users_forum_id_nickname_index2
   ON forum_users (forumId, lower(nickname));
 
-CREATE UNIQUE INDEX forum_users_covering_index2
+CREATE INDEX forum_users_covering_index2
   ON forum_users (forumId, lower(nickname), nickname, email, about, fullname);

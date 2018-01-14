@@ -161,7 +161,7 @@ func CreatePosts(slugOrID interface{}, postsArr *models.PostArr) (*models.PostAr
 		post.Forum_slug = forumSlug
 		post.Created = &created
 		post.User_nick = userRealNicknameMap[strings.ToLower(post.User_nick)]
-		post.Parents = append(post.Parents, ids[index])
+		post.Parents = append(post.Parents, int32(ids[index]))
 
 		batch.Queue("insertIntoPost", []interface{}{post.Id, post.User_nick, post.Message, post.Created, post.Forum_slug, post.Thread_id, post.Parent, post.Parents, post.Parents[0]}, nil, nil)
 	}

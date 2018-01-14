@@ -59,30 +59,46 @@ func easyjsonD2b7633eEncodeGithubComNdRTechDbForumModels(out *jwriter.Writer, in
 	out.RawByte('{')
 	first := true
 	_ = first
-	if !first {
-		out.RawByte(',')
+	if in.ID != 0 {
+		const prefix string = ",\"ID\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Int(int(in.ID))
 	}
-	first = false
-	out.RawString("\"ID\":")
-	out.Int(int(in.ID))
-	if !first {
-		out.RawByte(',')
+	if in.Nickname != "" {
+		const prefix string = ",\"Nickname\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.Nickname))
 	}
-	first = false
-	out.RawString("\"Nickname\":")
-	out.String(string(in.Nickname))
-	if !first {
-		out.RawByte(',')
+	if in.Thread_id != 0 {
+		const prefix string = ",\"Thread_id\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Int(int(in.Thread_id))
 	}
-	first = false
-	out.RawString("\"Thread_id\":")
-	out.Int(int(in.Thread_id))
-	if !first {
-		out.RawByte(',')
+	if in.Voice != 0 {
+		const prefix string = ",\"Voice\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Int(int(in.Voice))
 	}
-	first = false
-	out.RawString("\"Voice\":")
-	out.Int(int(in.Voice))
 	out.RawByte('}')
 }
 
@@ -146,18 +162,26 @@ func easyjsonD2b7633eEncodeGithubComNdRTechDbForumModels1(out *jwriter.Writer, i
 	out.RawByte('{')
 	first := true
 	_ = first
-	if !first {
-		out.RawByte(',')
+	if in.Nickname != "" {
+		const prefix string = ",\"nickname\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.Nickname))
 	}
-	first = false
-	out.RawString("\"nickname\":")
-	out.String(string(in.Nickname))
-	if !first {
-		out.RawByte(',')
+	if in.Voice != 0 {
+		const prefix string = ",\"voice\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Int(int(in.Voice))
 	}
-	first = false
-	out.RawString("\"voice\":")
-	out.Int(int(in.Voice))
 	out.RawByte('}')
 }
 
@@ -338,48 +362,44 @@ func easyjsonD2b7633eEncodeGithubComNdRTechDbForumModels3(out *jwriter.Writer, i
 	first := true
 	_ = first
 	if in.About != nil {
-		if !first {
-			out.RawByte(',')
-		}
-		first = false
-		out.RawString("\"about\":")
-		if in.About == nil {
-			out.RawString("null")
+		const prefix string = ",\"about\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
 		} else {
-			out.String(string(*in.About))
+			out.RawString(prefix)
 		}
+		out.String(string(*in.About))
 	}
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"email\":")
-	if in.Email == nil {
-		out.RawString("null")
-	} else {
+	if in.Email != nil {
+		const prefix string = ",\"email\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
 		out.String(string(*in.Email))
 	}
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"fullname\":")
-	if in.Fullname == nil {
-		out.RawString("null")
-	} else {
+	if in.Fullname != nil {
+		const prefix string = ",\"fullname\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
 		out.String(string(*in.Fullname))
 	}
 	if in.Nickname != nil {
-		if !first {
-			out.RawByte(',')
-		}
-		first = false
-		out.RawString("\"nickname\":")
-		if in.Nickname == nil {
-			out.RawString("null")
+		const prefix string = ",\"nickname\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
 		} else {
-			out.String(string(*in.Nickname))
+			out.RawString(prefix)
 		}
+		out.String(string(*in.Nickname))
 	}
 	out.RawByte('}')
 }
@@ -449,31 +469,43 @@ func easyjsonD2b7633eEncodeGithubComNdRTechDbForumModels4(out *jwriter.Writer, i
 	first := true
 	_ = first
 	if in.About != "" {
-		if !first {
-			out.RawByte(',')
+		const prefix string = ",\"about\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
 		}
-		first = false
-		out.RawString("\"about\":")
 		out.String(string(in.About))
 	}
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"email\":")
-	out.String(string(in.Email))
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"fullname\":")
-	out.String(string(in.Fullname))
-	if in.Nickname != "" {
-		if !first {
-			out.RawByte(',')
+	if in.Email != "" {
+		const prefix string = ",\"email\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
 		}
-		first = false
-		out.RawString("\"nickname\":")
+		out.String(string(in.Email))
+	}
+	if in.Fullname != "" {
+		const prefix string = ",\"fullname\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.Fullname))
+	}
+	if in.Nickname != "" {
+		const prefix string = ",\"nickname\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
 		out.String(string(in.Nickname))
 	}
 	out.RawByte('}')
@@ -635,24 +667,24 @@ func easyjsonD2b7633eEncodeGithubComNdRTechDbForumModels6(out *jwriter.Writer, i
 	out.RawByte('{')
 	first := true
 	_ = first
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"message\":")
-	if in.Message == nil {
-		out.RawString("null")
-	} else {
+	if in.Message != nil {
+		const prefix string = ",\"message\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
 		out.String(string(*in.Message))
 	}
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"title\":")
-	if in.Title == nil {
-		out.RawString("null")
-	} else {
+	if in.Title != nil {
+		const prefix string = ",\"title\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
 		out.String(string(*in.Title))
 	}
 	out.RawByte('}')
@@ -756,64 +788,84 @@ func easyjsonD2b7633eEncodeGithubComNdRTechDbForumModels7(out *jwriter.Writer, i
 	out.RawByte('{')
 	first := true
 	_ = first
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"id\":")
-	if in.Id == nil {
-		out.RawString("null")
-	} else {
+	if in.Id != nil {
+		const prefix string = ",\"id\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
 		out.Int(int(*in.Id))
 	}
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"slug\":")
-	if in.Slug == nil {
-		out.RawString("null")
-	} else {
+	if in.Slug != nil {
+		const prefix string = ",\"slug\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
 		out.String(string(*in.Slug))
 	}
-	if !first {
-		out.RawByte(',')
+	if in.Title != "" {
+		const prefix string = ",\"title\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.Title))
 	}
-	first = false
-	out.RawString("\"title\":")
-	out.String(string(in.Title))
-	if !first {
-		out.RawByte(',')
+	if in.Message != "" {
+		const prefix string = ",\"message\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.Message))
 	}
-	first = false
-	out.RawString("\"message\":")
-	out.String(string(in.Message))
-	if !first {
-		out.RawByte(',')
+	if in.Forum_slug != "" {
+		const prefix string = ",\"forum\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.Forum_slug))
 	}
-	first = false
-	out.RawString("\"forum\":")
-	out.String(string(in.Forum_slug))
-	if !first {
-		out.RawByte(',')
+	if in.User_nick != "" {
+		const prefix string = ",\"author\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.User_nick))
 	}
-	first = false
-	out.RawString("\"author\":")
-	out.String(string(in.User_nick))
-	if !first {
-		out.RawByte(',')
+	if true {
+		const prefix string = ",\"created\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Raw((in.Created).MarshalJSON())
 	}
-	first = false
-	out.RawString("\"created\":")
-	out.Raw((in.Created).MarshalJSON())
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"votes\":")
-	if in.Votes_count == nil {
-		out.RawString("null")
-	} else {
+	if in.Votes_count != nil {
+		const prefix string = ",\"votes\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
 		out.Int(int(*in.Votes_count))
 	}
 	out.RawByte('}')
@@ -883,30 +935,46 @@ func easyjsonD2b7633eEncodeGithubComNdRTechDbForumModels8(out *jwriter.Writer, i
 	out.RawByte('{')
 	first := true
 	_ = first
-	if !first {
-		out.RawByte(',')
+	if in.Forum != 0 {
+		const prefix string = ",\"forum\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Int(int(in.Forum))
 	}
-	first = false
-	out.RawString("\"forum\":")
-	out.Int(int(in.Forum))
-	if !first {
-		out.RawByte(',')
+	if in.Post != 0 {
+		const prefix string = ",\"post\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Int(int(in.Post))
 	}
-	first = false
-	out.RawString("\"post\":")
-	out.Int(int(in.Post))
-	if !first {
-		out.RawByte(',')
+	if in.Thread != 0 {
+		const prefix string = ",\"thread\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Int(int(in.Thread))
 	}
-	first = false
-	out.RawString("\"thread\":")
-	out.Int(int(in.Thread))
-	if !first {
-		out.RawByte(',')
+	if in.User != 0 {
+		const prefix string = ",\"user\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Int(int(in.User))
 	}
-	first = false
-	out.RawString("\"user\":")
-	out.Int(int(in.User))
 	out.RawByte('}')
 }
 
@@ -976,14 +1044,14 @@ func easyjsonD2b7633eEncodeGithubComNdRTechDbForumModels9(out *jwriter.Writer, i
 	out.RawByte('{')
 	first := true
 	_ = first
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"message\":")
-	if in.Message == nil {
-		out.RawString("null")
-	} else {
+	if in.Message != nil {
+		const prefix string = ",\"message\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
 		out.String(string(*in.Message))
 	}
 	out.RawByte('}')
@@ -1094,52 +1162,44 @@ func easyjsonD2b7633eEncodeGithubComNdRTechDbForumModels10(out *jwriter.Writer, 
 	first := true
 	_ = first
 	if in.AuthorDetails != nil {
-		if !first {
-			out.RawByte(',')
-		}
-		first = false
-		out.RawString("\"author\":")
-		if in.AuthorDetails == nil {
-			out.RawString("null")
+		const prefix string = ",\"author\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
 		} else {
-			out.Raw((*in.AuthorDetails).MarshalJSON())
+			out.RawString(prefix)
 		}
+		out.Raw((*in.AuthorDetails).MarshalJSON())
 	}
 	if in.ForumDetails != nil {
-		if !first {
-			out.RawByte(',')
-		}
-		first = false
-		out.RawString("\"forum\":")
-		if in.ForumDetails == nil {
-			out.RawString("null")
+		const prefix string = ",\"forum\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
 		} else {
-			out.Raw((*in.ForumDetails).MarshalJSON())
+			out.RawString(prefix)
 		}
+		out.Raw((*in.ForumDetails).MarshalJSON())
 	}
 	if in.PostDetails != nil {
-		if !first {
-			out.RawByte(',')
-		}
-		first = false
-		out.RawString("\"post\":")
-		if in.PostDetails == nil {
-			out.RawString("null")
+		const prefix string = ",\"post\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
 		} else {
-			out.Raw((*in.PostDetails).MarshalJSON())
+			out.RawString(prefix)
 		}
+		out.Raw((*in.PostDetails).MarshalJSON())
 	}
 	if in.ThreadDetails != nil {
-		if !first {
-			out.RawByte(',')
-		}
-		first = false
-		out.RawString("\"thread\":")
-		if in.ThreadDetails == nil {
-			out.RawString("null")
+		const prefix string = ",\"thread\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
 		} else {
-			out.Raw((*in.ThreadDetails).MarshalJSON())
+			out.RawString(prefix)
 		}
+		out.Raw((*in.ThreadDetails).MarshalJSON())
 	}
 	out.RawByte('}')
 }
@@ -1291,7 +1351,7 @@ func easyjsonD2b7633eDecodeGithubComNdRTechDbForumModels12(in *jlexer.Lexer, out
 		case "isEdited":
 			out.Is_edited = bool(in.Bool())
 		case "parent":
-			out.Parent = int64(in.Int64())
+			out.Parent = int32(in.Int32())
 		case "Parents":
 			if in.IsNull() {
 				in.Skip()
@@ -1300,16 +1360,16 @@ func easyjsonD2b7633eDecodeGithubComNdRTechDbForumModels12(in *jlexer.Lexer, out
 				in.Delim('[')
 				if out.Parents == nil {
 					if !in.IsDelim(']') {
-						out.Parents = make([]int64, 0, 8)
+						out.Parents = make([]int32, 0, 16)
 					} else {
-						out.Parents = []int64{}
+						out.Parents = []int32{}
 					}
 				} else {
 					out.Parents = (out.Parents)[:0]
 				}
 				for !in.IsDelim(']') {
-					var v10 int64
-					v10 = int64(in.Int64())
+					var v10 int32
+					v10 = int32(in.Int32())
 					out.Parents = append(out.Parents, v10)
 					in.WantComma()
 				}
@@ -1329,76 +1389,104 @@ func easyjsonD2b7633eEncodeGithubComNdRTechDbForumModels12(out *jwriter.Writer, 
 	out.RawByte('{')
 	first := true
 	_ = first
-	if !first {
-		out.RawByte(',')
+	if in.Id != 0 {
+		const prefix string = ",\"id\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Int(int(in.Id))
 	}
-	first = false
-	out.RawString("\"id\":")
-	out.Int(int(in.Id))
-	if !first {
-		out.RawByte(',')
+	if in.User_nick != "" {
+		const prefix string = ",\"author\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.User_nick))
 	}
-	first = false
-	out.RawString("\"author\":")
-	out.String(string(in.User_nick))
-	if !first {
-		out.RawByte(',')
+	if in.Message != "" {
+		const prefix string = ",\"message\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.Message))
 	}
-	first = false
-	out.RawString("\"message\":")
-	out.String(string(in.Message))
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"created\":")
-	if in.Created == nil {
-		out.RawString("null")
-	} else {
+	if in.Created != nil {
+		const prefix string = ",\"created\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
 		out.Raw((*in.Created).MarshalJSON())
 	}
-	if !first {
-		out.RawByte(',')
+	if in.Forum_slug != "" {
+		const prefix string = ",\"forum\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.Forum_slug))
 	}
-	first = false
-	out.RawString("\"forum\":")
-	out.String(string(in.Forum_slug))
-	if !first {
-		out.RawByte(',')
+	if in.Thread_id != 0 {
+		const prefix string = ",\"thread\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Int(int(in.Thread_id))
 	}
-	first = false
-	out.RawString("\"thread\":")
-	out.Int(int(in.Thread_id))
-	if !first {
-		out.RawByte(',')
+	if in.Is_edited {
+		const prefix string = ",\"isEdited\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Bool(bool(in.Is_edited))
 	}
-	first = false
-	out.RawString("\"isEdited\":")
-	out.Bool(bool(in.Is_edited))
 	if in.Parent != 0 {
-		if !first {
-			out.RawByte(',')
+		const prefix string = ",\"parent\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
 		}
-		first = false
-		out.RawString("\"parent\":")
-		out.Int64(int64(in.Parent))
+		out.Int32(int32(in.Parent))
 	}
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"Parents\":")
-	if in.Parents == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
-		out.RawString("null")
-	} else {
-		out.RawByte('[')
-		for v11, v12 := range in.Parents {
-			if v11 > 0 {
-				out.RawByte(',')
+	if len(in.Parents) != 0 {
+		const prefix string = ",\"Parents\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		{
+			out.RawByte('[')
+			for v11, v12 := range in.Parents {
+				if v11 > 0 {
+					out.RawByte(',')
+				}
+				out.Int32(int32(v12))
 			}
-			out.Int64(int64(v12))
+			out.RawByte(']')
 		}
-		out.RawByte(']')
 	}
 	out.RawByte('}')
 }
@@ -1469,36 +1557,56 @@ func easyjsonD2b7633eEncodeGithubComNdRTechDbForumModels13(out *jwriter.Writer, 
 	out.RawByte('{')
 	first := true
 	_ = first
-	if !first {
-		out.RawByte(',')
+	if in.Slug != "" {
+		const prefix string = ",\"slug\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.Slug))
 	}
-	first = false
-	out.RawString("\"slug\":")
-	out.String(string(in.Slug))
-	if !first {
-		out.RawByte(',')
+	if in.Title != "" {
+		const prefix string = ",\"title\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.Title))
 	}
-	first = false
-	out.RawString("\"title\":")
-	out.String(string(in.Title))
-	if !first {
-		out.RawByte(',')
+	if in.Moderator != "" {
+		const prefix string = ",\"user\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.Moderator))
 	}
-	first = false
-	out.RawString("\"user\":")
-	out.String(string(in.Moderator))
-	if !first {
-		out.RawByte(',')
+	if in.Threads != 0 {
+		const prefix string = ",\"threads\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Int(int(in.Threads))
 	}
-	first = false
-	out.RawString("\"threads\":")
-	out.Int(int(in.Threads))
-	if !first {
-		out.RawByte(',')
+	if in.Posts != 0 {
+		const prefix string = ",\"posts\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Int(int(in.Posts))
 	}
-	first = false
-	out.RawString("\"posts\":")
-	out.Int(int(in.Posts))
 	out.RawByte('}')
 }
 
@@ -1560,12 +1668,16 @@ func easyjsonD2b7633eEncodeGithubComNdRTechDbForumModels14(out *jwriter.Writer, 
 	out.RawByte('{')
 	first := true
 	_ = first
-	if !first {
-		out.RawByte(',')
+	if in.Message != "" {
+		const prefix string = ",\"message\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.Message))
 	}
-	first = false
-	out.RawString("\"message\":")
-	out.String(string(in.Message))
 	out.RawByte('}')
 }
 

@@ -12,8 +12,8 @@ type Post struct {
 	Forum_slug string     `json:"forum"`
 	Thread_id  int        `json:"thread"`
 	Is_edited  bool       `json:"isEdited"`
-	Parent     int64      `json:"parent,omitempty"`
-	Parents    []int64
+	Parent     int32      `json:"parent,omitempty"`
+	Parents    []int32
 }
 
 type PostDetails struct {

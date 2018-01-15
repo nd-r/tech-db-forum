@@ -113,7 +113,7 @@ CREATE UNIQUE INDEX thread_covering_index
 -- POST
 --
 CREATE TABLE post (
-  id          SERIAL,
+  id          SERIAL primary key,
 
   user_nick   TEXT      NOT NULL,
 
@@ -130,8 +130,13 @@ CREATE TABLE post (
   is_edited   BOOLEAN   NOT NULL DEFAULT FALSE
 );
 
+
+
 CREATE INDEX posts_thread_id_index
   ON post (thread_id, id);
+
+CREATE INDEX posts_thread_id_index2
+  ON post (thread_id);
 
 CREATE INDEX posts_thread_id_parents_index
   ON post (thread_id, parents);

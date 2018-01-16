@@ -32,6 +32,8 @@ func TxMustBegin() *pgx.Tx {
 func Vaccuum() {
 	time.Sleep(20 * time.Second)
 	//go func() {
+	db.Exec("CLUSTER forum_users USING forum_users_forum_id_nickname_index")
+	db.Exec("CLUSTER post USING parent_tree_3_1")
 	db.Exec("VACUUM ANALYZE")
 	//}()
 }

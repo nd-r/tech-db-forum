@@ -34,6 +34,8 @@ func Vaccuum() {
 	//go func() {
 	db.Exec("CLUSTER forum_users USING forum_users_forum_id_nickname_index")
 	db.Exec("CLUSTER post USING parent_tree_3_1")
+	db.Exec("CLUSTER thread USING thread_forum_id_created_index")
+	db.Exec("CLUSTER forum USING forum_slug_id_index")
 	db.Exec("VACUUM ANALYZE")
 	//}()
 }

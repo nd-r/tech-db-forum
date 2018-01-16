@@ -43,8 +43,7 @@ host all  all    0.0.0.0/0  md5" >>\
 #effective_cache_size = 1024MB\n\
 #wal_writer_delay = 2000ms\n" >> /etc/postgresql/$PGVER/main/postgresql.conf
 
-RUN echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/$PGVER/main/pg_hba.conf
-RUN echo "listen_addresses='*'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "unix_socket_directories = '/var/run/postgresql/'" >> /etc/postgresql/$PGVER/main/postgresql.conf
 RUN echo "synchronous_commit='off'" >> /etc/postgresql/$PGVER/main/postgresql.conf
 RUN echo "fsync = 'off'" >> /etc/postgresql/$PGVER/main/postgresql.conf
 RUN echo "max_wal_size = 1GB" >> /etc/postgresql/$PGVER/main/postgresql.conf

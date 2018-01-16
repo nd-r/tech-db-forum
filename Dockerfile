@@ -37,11 +37,20 @@ host    all             all             127.0.0.1/32            md5\n\
 host all  all    0.0.0.0/0  md5" >>\
     /etc/postgresql/$PGVER/main/pg_hba.conf
 
-RUN echo "unix_socket_directories = '/var/run/postgresql/'\n\
-synchronous_commit='off'\n\
-shared_buffers = 512MB\n\
-effective_cache_size = 1024MB\n\
-wal_writer_delay = 2000ms\n" >> /etc/postgresql/$PGVER/main/postgresql.conf
+#RUN echo "unix_socket_directories = '/var/run/postgresql/'\n\
+#synchronous_commit='off'\n\
+#shared_buffers = 512MB\n\
+#effective_cache_size = 1024MB\n\
+#wal_writer_delay = 2000ms\n" >> /etc/postgresql/$PGVER/main/postgresql.conf
+
+RUN echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/$PGVER/main/pg_hba.conf
+RUN echo "listen_addresses='*'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "synchronous_commit='off'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "fsync = 'off'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "max_wal_size = 1GB" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "shared_buffers = 128MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "effective_cache_size = 256MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "work_mem = 64MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
 
 EXPOSE 5432
 

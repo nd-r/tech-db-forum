@@ -47,8 +47,8 @@ RUN echo "unix_socket_directories = '/var/run/postgresql/'" >> /etc/postgresql/$
 RUN echo "synchronous_commit='off'" >> /etc/postgresql/$PGVER/main/postgresql.conf
 RUN echo "fsync = 'off'" >> /etc/postgresql/$PGVER/main/postgresql.conf
 RUN echo "max_wal_size = 1GB" >> /etc/postgresql/$PGVER/main/postgresql.conf
-RUN echo "shared_buffers = 128MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
-RUN echo "effective_cache_size = 256MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "shared_buffers = 192MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "effective_cache_size = 384MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
 RUN echo "work_mem = 16MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
 
 EXPOSE 5432

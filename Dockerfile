@@ -46,6 +46,7 @@ host all  all    0.0.0.0/0  md5" >>\
 RUN echo "unix_socket_directories = '/var/run/postgresql/'" >> /etc/postgresql/$PGVER/main/postgresql.conf
 RUN echo "synchronous_commit='off'" >> /etc/postgresql/$PGVER/main/postgresql.conf
 RUN echo "fsync = 'off'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "logging_collector = 'off'" >> /etc/postgresql/$PGVER/main/postgresql.conf
 RUN echo "max_wal_size = 1GB" >> /etc/postgresql/$PGVER/main/postgresql.conf
 RUN echo "shared_buffers = 16MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
 RUN echo "effective_cache_size = 256MB" >> /etc/postgresql/$PGVER/main/postgresql.conf

@@ -7,7 +7,6 @@ import (
 	"github.com/valyala/fasthttp"
 	"github.com/nd-r/tech-db-forum/cache"
 	"strings"
-	"log"
 )
 
 // CreateUser - создание нового пользователя

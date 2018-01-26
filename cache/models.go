@@ -43,15 +43,15 @@ func (fc *ForumCache) Clear() {
 	fc.cMap = hashmap.HashMap{}
 }
 
-func (uc *UserCache) Get(nickname interface{}) (*CachedUser) {
+func (uc *UserCache) Get(nickname interface{}) ([]byte) {
 
 	if val, ok := uc.cMap.Get(nickname); ok {
-		return (*CachedUser)(val)
+		return *(*[]byte)(val)
 	}
 	return nil
 }
 
-func (uc *UserCache) Push(nickname interface{}, cu *CachedUser) {
+func (uc *UserCache) Push(nickname interface{}, cu *[]byte) {
 	uc.cMap.Set(nickname, unsafe.Pointer(cu))
 }
 

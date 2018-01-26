@@ -5,6 +5,9 @@ import (
 	"github.com/nd-r/tech-db-forum/dberrors"
 	"github.com/nd-r/tech-db-forum/models"
 	"github.com/valyala/fasthttp"
+	"github.com/nd-r/tech-db-forum/cache"
+	"strings"
+	"log"
 )
 
 // CreateUser - создание нового пользователя
@@ -37,20 +40,30 @@ func CreateUser(ctx *fasthttp.RequestCtx) {
 // GetUserProfile - получение информации о пользователе
 // GET /user/{nickname}/profile
 func GetUserProfile(ctx *fasthttp.RequestCtx) {
-	nickname := ctx.UserValue("nickname")
-	var resp []byte
+	ctx.SetContentType("application/json")
 
-	user, err := database.GetUserProfile(nickname)
+	nickname := ctx.UserValue("nickname")
+	user := cache.TheGreatUserCache.Get(strings.ToLower(nickname.(string)))
+
+	if user != nil {
+		ctx.Write(user)
+		return
+	}
+
+	var resp []byte
+	var err error
+
+	userFromDb, err := database.GetUserProfile(nickname)
 
 	switch err {
 	case nil:
-		resp, _ = user.MarshalJSON()
+		resp, _ = userFromDb.MarshalJSON()
+		cache.TheGreatUserCache.Push(strings.ToLower(userFromDb.Nickname), &resp)
 	case dberrors.ErrUserNotFound:
 		ctx.SetStatusCode(404)
 		resp = models.ErrorMsg
 	}
 
-	ctx.SetContentType("application/json")
 	ctx.Write(resp)
 }
 

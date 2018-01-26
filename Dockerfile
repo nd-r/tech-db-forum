@@ -49,7 +49,7 @@ RUN echo "fsync = 'off'" >> /etc/postgresql/$PGVER/main/postgresql.conf
 RUN echo "logging_collector = 'off'" >> /etc/postgresql/$PGVER/main/postgresql.conf
 RUN echo "max_wal_size = 1GB" >> /etc/postgresql/$PGVER/main/postgresql.conf
 RUN echo "shared_buffers = 16MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
-RUN echo "effective_cache_size = 4096MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "effective_cache_size = 1024MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
 RUN echo "work_mem = 16MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
 
 EXPOSE 5432
